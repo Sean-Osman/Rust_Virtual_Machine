@@ -1,5 +1,5 @@
 [package]
-name = "Virtual_Machine_Project"
+name = "bytecode_vm"
 version = "0.1.0"
 edition = "2024"
 
