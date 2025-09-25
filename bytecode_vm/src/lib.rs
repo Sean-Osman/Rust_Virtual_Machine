@@ -12,6 +12,7 @@ pub enum OpCode{
     OpSubtract,
     OpMultiply,
     OpDivide
+
 }
 
 #[derive(Debug)]
@@ -45,8 +46,19 @@ impl Chunk{
 
 
     }
-    fn disassemble_instruction(&self, offset: usize){
+    fn disassemble_instruction(&mut self, offset: usize){
         println!("{:?}", self.code.get(offset..));
+    }
+
+     fn add_constant(&mut self, num: u8){
+
+        // push opconstant into code, then push num into the next value slot then take the index of the value and push it into code.
+
+        self.code.push(1);
+        self.values.push(num);
+        let tempNum: u8 = self.values.len() as u8;
+        self.code.push(tempNum);
+        
     }
 
 
@@ -82,7 +94,4 @@ impl Chunk{
 
     }
 
-    fn add_constant(num: u8){
-
-    }
  }
