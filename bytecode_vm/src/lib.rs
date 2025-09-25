@@ -56,8 +56,8 @@ impl Chunk{
 
         self.code.push(1);
         self.values.push(num);
-        let tempNum: u8 = self.values.len() as u8;
-        self.code.push(tempNum);
+        let temp_num: u8 = self.values.len() as u8;
+        self.code.push(temp_num);
         
     }
 
