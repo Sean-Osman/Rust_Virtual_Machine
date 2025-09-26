@@ -31,12 +31,61 @@ impl Chunk{
         self.lines.push(linenum);
     }
 
-    pub fn disassemble(&self, name: &str){
-        println!("{} = {:?}", name, self.code);
-        // for i in 0..self.code.len(){
-        //     println!("{:?}", self.code);
-        // }
-    }
+    // pub fn disassemble(&self, name: &str){
+    //     println!("=={}==", name);
+    //     for i in 0..self.lines.len(){
+    //         println!("{} {}",self.lines[i] ,self.code[i]);
+    //     }
+       
+    // }
+    pub fn disassemble(&self, name: &str) {
+      println!("== {} ==", name);
+
+      let mut offset: usize = 0;
+
+      while offset < self.code.len() {
+          print!("{:04}  ", offset);
+          let line = self.lines[offset];
+          print!("{:>3} ", line);
+
+
+          let opcodebyte = self.code[offset];
+          let opcode = OpCode::BitToOp(opcodebyte);
+
+          match opcode {
+              OpCode::OpConstant => {
+                  let idxbyte = self.code[offset + 1] as usize;
+                  let value = self.values[idxbyte];
+                  println!("OP_CONSTANT         {} {}", idxbyte, value);
+                  offset += 2;
+              }
+              OpCode::OpReturn => {
+                  println!("OP_RETURN");
+                  offset += 1;
+              }
+              OpCode::OpNegate => {
+                  println!("OP_NEGATE");
+                  offset += 1;
+              }
+              OpCode::OpAdd => {
+                  println!("OP_ADD");
+                  offset += 1;
+              }
+              OpCode::OpSubtract => {
+                  println!("OP_SUBTRACT");
+                  offset += 1;
+              }
+              OpCode::OpMultiply => {
+                  println!("OP_MULTIPLY");
+                  offset += 1;
+              }
+              OpCode::OpDivide => {
+                  println!("OP_DIVIDE");
+                  offset += 1;
+              }
+          }
+      }
+  }
 
 
     pub fn disassemble_instruction(&mut self, offset: usize){
@@ -47,12 +96,14 @@ impl Chunk{
 
         // push opconstant into code, then push num into the next value slot then take the index of the value and push it into code.
 
-        self.code.push(1);
-        self.values.push(num);
-        let temp_num: u8 = self.values.len() as u8;
-        self.code.push(temp_num);
-        temp_num
+        // self.code.push(1);
         
+        // self.values.push(num);
+        // let temp_num: u8 = self.values.len() as u8;
+        // self.code.push(temp_num);
+        // temp_num
+        self.values.push(num);
+        (self.values.len() - 1) as u8
     }
   
   
@@ -62,7 +113,7 @@ impl Chunk{
 
     pub fn OpToBit(name: OpCode) -> u8{
 
-        match(name){
+        match name {
             OpCode::OpReturn => 0,
             OpCode::OpConstant => 1,
             OpCode::OpNegate => 2,
@@ -75,7 +126,7 @@ impl Chunk{
 
     pub fn BitToOp(num: u8) -> OpCode{
 
-        match(num){
+        match num {
             0 => OpCode::OpReturn,
             1 => OpCode::OpConstant,
             2 => OpCode::OpNegate,

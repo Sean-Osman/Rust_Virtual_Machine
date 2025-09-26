@@ -1,1 +1,1 @@
-/Users/billturbadrakh/Rust_Virtual_Machine/bytecode_vm/target/debug/bytecode_vm: /Users/billturbadrakh/Rust_Virtual_Machine/bytecode_vm/src/lib.rs /Users/billturbadrakh/Rust_Virtual_Machine/bytecode_vm/src/main.rs
+C:\Users\nando\documents\VirtualMachine\bytecode_vm\target\debug\bytecode_vm.exe: C:\Users\nando\documents\VirtualMachine\bytecode_vm\src\lib.rs C:\Users\nando\documents\VirtualMachine\bytecode_vm\src\main.rs
