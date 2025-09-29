@@ -1,0 +1,1 @@
+c:\Users\spoth\Documents\GitHub\Rust_Virtual_Machine\bytecode_vm\target\debug\bytecode_vm.exe: c:\Users\spoth\Documents\GitHub\Rust_Virtual_Machine\bytecode_vm\src\lib.rs c:\Users\spoth\Documents\GitHub\Rust_Virtual_Machine\bytecode_vm\src\main.rs
