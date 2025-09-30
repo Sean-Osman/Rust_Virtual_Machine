@@ -9,6 +9,7 @@ pub enum OpCode{
     OpSubtract,
     OpMultiply,
     OpDivide,
+    OpModulo,
 
 }
 
@@ -42,7 +43,29 @@ impl VirtualMachine {
     }
 
     pub fn run(&mut self) {
-        
+        while self.ip < self.chunk.code.len() {
+            let byte = self.chunk.code[self.ip];
+            let opcode = OpCode::BitToOp(byte);
+            match opcode {
+                OpCode::OpReturn => {
+                }
+                OpCode::OpConstant => {
+                }
+                OpCode::OpAdd => {
+                }
+                OpCode::OpSubtract => {
+                }
+                OpCode::OpMultiply => {
+                }
+                OpCode::OpDivide => {
+                }
+                OpCode::OpModulo => {
+                }
+                OpCode::OpNegate => {
+                }
+            }
+            self.ip += 1;
+        }
     }
 }
 
@@ -95,7 +118,8 @@ impl Chunk{
             OpCode::OpAdd => 3,
             OpCode::OpSubtract => 4,
             OpCode::OpMultiply => 5,
-            OpCode::OpDivide => 6
+            OpCode::OpDivide => 6,
+            OpCode::OpModulo => 7,
         }
     }
 
