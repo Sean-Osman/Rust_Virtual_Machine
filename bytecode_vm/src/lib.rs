@@ -1,5 +1,5 @@
 
-pub type Value = u8;
+pub type Value = i16;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum OpCode {
@@ -65,7 +65,7 @@ impl Chunk {
         self.lines.push(linenum);
     }
 
-    pub fn add_constant(&mut self, num: u8) -> u8 {
+    pub fn add_constant(&mut self, num: Value) -> u8 {
       self.values.push(num);
       (self.values.len() - 1) as u8
   }
@@ -76,58 +76,60 @@ impl Chunk {
 
         let mut offset: usize = 0;
         while offset < self.code.len() {
-            // byte offset
-            print!("{:04}  ", offset);
+            let val = self.disassemble_instruction(offset);
+            offset += val;
+            // // byte offset
+            // print!("{:04}  ", offset);
 
-            // line (assumes 1 line per code byte push)
-            let line = self.lines[offset];
-            print!("{:>3} ", line);
+            // // line (assumes 1 line per code byte push)
+            // let line = self.lines[offset];
+            // print!("{:>3} ", line);
 
-            // decode
-            let opcodebyte = self.code[offset];
-            let opcode = OpCode::BitToOp(opcodebyte);
+            // // decode
+            // let opcodebyte = self.code[offset];
+            // let opcode = OpCode::BitToOp(opcodebyte);
 
-            match opcode {
-                OpCode::OpConstant => {
-                    // one-byte operand: constant index
-                    let idxbyte = self.code[offset + 1] as usize;
-                    let value = self.values[idxbyte];
-                    println!("OP_CONSTANT         {} {}", idxbyte, value);
-                    offset += 2; // opcode + operand
-                }
-                OpCode::OpReturn => {
-                    println!("OP_RETURN");
-                    offset += 1;
-                }
-                OpCode::OpNegate => {
-                    println!("OP_NEGATE");
-                    offset += 1;
-                }
-                OpCode::OpAdd => {
-                    println!("OP_ADD");
-                    offset += 1;
-                }
-                OpCode::OpSubtract => {
-                    println!("OP_SUBTRACT");
-                    offset += 1;
-                }
-                OpCode::OpMultiply => {
-                    println!("OP_MULTIPLY");
-                    offset += 1;
-                }
-                OpCode::OpDivide => {
-                    println!("OP_DIVIDE");
-                    offset += 1;
-                }
-                OpCode::OpModulo => {
-                    println!("OP_MODULO");
-                    offset += 1;
-                }
-            }
+            // match opcode {
+            //     OpCode::OpConstant => {
+            //         // one-byte operand: constant index
+            //         let idxbyte = self.code[offset + 1] as usize;
+            //         let value = self.values[idxbyte];
+            //         println!("OP_CONSTANT         {} {}", idxbyte, value);
+            //         offset += 2; // opcode + operand
+            //     }
+            //     OpCode::OpReturn => {
+            //         println!("OP_RETURN");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpNegate => {
+            //         println!("OP_NEGATE");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpAdd => {
+            //         println!("OP_ADD");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpSubtract => {
+            //         println!("OP_SUBTRACT");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpMultiply => {
+            //         println!("OP_MULTIPLY");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpDivide => {
+            //         println!("OP_DIVIDE");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpModulo => {
+            //         println!("OP_MODULO");
+            //         offset += 1;
+            //     }
+            // }
         }
     }
 
-    pub fn disassemble_instruction(&self, mut offset: usize) {
+    pub fn disassemble_instruction(&self, mut offset: usize) -> usize{
         //println!("{:?}", self.code.get(offset..));
         
             // byte offset
@@ -141,41 +143,50 @@ impl Chunk {
             let opcodebyte = self.code[offset];
             let opcode = OpCode::BitToOp(opcodebyte);
 
+
             match opcode {
                 OpCode::OpConstant => {
                     // one-byte operand: constant index
                     let idxbyte = self.code[offset + 1] as usize;
                     let value = self.values[idxbyte];
                     println!("OP_CONSTANT         {} {}", idxbyte, value);
-                    offset += 2; // opcode + operand
+                    let offset = 2; // opcode + operand
+                    offset
                 }
                 OpCode::OpReturn => {
                     println!("OP_RETURN");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpNegate => {
                     println!("OP_NEGATE");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpAdd => {
                     println!("OP_ADD");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpSubtract => {
                     println!("OP_SUBTRACT");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpMultiply => {
                     println!("OP_MULTIPLY");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpDivide => {
                     println!("OP_DIVIDE");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpModulo => {
                     println!("OP_MODULO");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
             }
         }
@@ -218,7 +229,7 @@ impl VirtualMachine {
 
           let byte = self.chunk.code[self.ip];
           let opcode = OpCode::BitToOp(byte);
-          self.chunk.disassemble_instruction(self.ip);
+          ///self.chunk.disassemble_instruction(self.ip);
           println!("{:?}", self.stack);
           
           match opcode {
@@ -242,9 +253,10 @@ impl VirtualMachine {
   
               OpCode::OpNegate => {
                   if let Some(v) = self.stack.pop() {
-                      let neg = (0u8).wrapping_sub(v);
-                      self.stack.push(neg);
-                      self.ip += 1;
+                    //   let neg = (0u8).wrapping_sub(v);
+                    //   self.stack.push(neg);
+                    self.stack.push(v * -1);
+                    self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
                   }
