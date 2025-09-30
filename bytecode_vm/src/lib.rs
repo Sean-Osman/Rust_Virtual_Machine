@@ -82,7 +82,7 @@ impl VirtualMachine {
                 OpCode::OpMultiply => {
                     let first: u8 = self.stack.pop().unwrap();
                     let second = self.stack.pop().unwrap();
-                    self.stack.push(first * second);;
+                    self.stack.push(first * second);
                     self.ip += 1
                     
                     
@@ -161,7 +161,7 @@ impl Chunk{
 
     pub fn OpToBit(name: OpCode) -> u8{
 
-        match(name){
+        match name{
             OpCode::OpReturn => 0,
             OpCode::OpConstant => 1,
             OpCode::OpNegate => 2,
@@ -175,7 +175,7 @@ impl Chunk{
 
     pub fn BitToOp(num: u8) -> OpCode{
 
-        match(num){
+        match num{
             0 => OpCode::OpReturn,
             1 => OpCode::OpConstant,
             2 => OpCode::OpNegate,

@@ -1,6 +1,6 @@
 //Sean, Nando, Bill
 
-use bytecode_vm::{Chunk, OpCode}; //this imports all fns and structs
+use bytecode_vm::{Chunk, OpCode, VirtualMachine}; //this imports all fns and structs
 
 fn main() {
     println!("Hello, world!");
@@ -19,4 +19,7 @@ fn main() {
 
     chunk.write_to_chunk(OpCode::OpToBit(OpCode::OpReturn), 125);
     chunk.disassemble("Test chunk");
+
+    let mut vm: VirtualMachine = VirtualMachine::init_machine(chunk);
+    vm.interpret(chunk);
 }
