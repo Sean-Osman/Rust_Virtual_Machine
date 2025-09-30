@@ -252,3 +252,4 @@ impl VirtualMachine {
       InterpretResult::InterpretSuccess
     }
 }
+ 
