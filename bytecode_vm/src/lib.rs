@@ -220,6 +220,7 @@ impl VirtualMachine {
           let opcode = OpCode::BitToOp(byte);
           self.chunk.disassemble_instruction(self.ip);
           println!("{:?}", self.stack);
+          
           match opcode {
               OpCode::OpReturn => {
                   self.ip += 1;
