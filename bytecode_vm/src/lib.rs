@@ -10,7 +10,13 @@ pub enum OpCode{
     OpMultiply,
     OpDivide,
     OpModulo,
+    
+}
 
+pub enum InterpretResult {
+    InterpretSuccess,
+    InterpretCompileError,
+    InterpretRuntimeError,
 }
 
 #[derive(Debug, Default)]
