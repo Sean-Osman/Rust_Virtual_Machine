@@ -9,15 +9,114 @@ pub enum OpCode{
     OpSubtract,
     OpMultiply,
     OpDivide,
+    OpModulo,
 
+}
+
+pub enum InterpretResult {
+    InterpretSuccess,
+    InterpretCompileError,
+    InterpretRuntimeError
 }
 
 #[derive(Debug, Default)]
 pub struct Chunk{
     pub code: Vec<u8>, //what opcode
     pub lines: Vec<u32>, //specific line location
-    pub values: Vec<Value> // the actual number
+    pub values: Vec<Value> // the actual number 
+}
 
+#[derive(Debug)]
+pub struct VirtualMachine {
+    pub chunk: Chunk,
+    pub ip: usize,
+    pub stack: Vec<Value>,
+}
+
+impl VirtualMachine {
+    pub fn init_machine(chunk: Chunk) -> VirtualMachine {
+        VirtualMachine {
+            chunk,
+            ip: 0,
+            stack: Vec::new(),
+        }
+    }
+
+    pub fn interpret(&mut self, chunk: Chunk) {
+        self.chunk = chunk;
+        self.ip = 0;
+        self.run();
+    }
+
+    pub fn run(&mut self) -> InterpretResult{
+        while self.ip < self.chunk.code.len() {
+            let byte = self.chunk.code[self.ip];
+            let opcode = OpCode::BitToOp(byte);
+            match opcode {
+                OpCode::OpReturn => {
+                    self.ip += 1;
+                    return InterpretResult::InterpretSuccess
+                }
+                OpCode::OpConstant => {
+                    self.stack.push(byte);
+                    self.ip += 2;
+                    
+                    
+                }
+                OpCode::OpAdd => {
+                    let first: u8 = self.stack.pop().unwrap();
+                    let second = self.stack.pop().unwrap();
+                    self.stack.push(first + second);
+                    self.ip += 1;
+                    
+                    
+                }
+                OpCode::OpSubtract => {
+                    let first: u8 = self.stack.pop().unwrap();
+                    let second = self.stack.pop().unwrap();
+                    self.stack.push(first - second);
+                    self.ip += 1;
+                    
+                    
+                }
+                OpCode::OpMultiply => {
+                    let first: u8 = self.stack.pop().unwrap();
+                    let second = self.stack.pop().unwrap();
+                    self.stack.push(first * second);;
+                    self.ip += 1
+                    
+                    
+                }
+                OpCode::OpDivide => {
+                    let first: u8 = self.stack.pop().unwrap();
+                    let second = self.stack.pop().unwrap();
+                    self.stack.push(first / second);
+                    self.ip += 1;
+                   
+                    
+                }
+                OpCode::OpModulo => {
+                    let first: u8 = self.stack.pop().unwrap();
+                    let second = self.stack.pop().unwrap();
+                    self.stack.push(first % second);
+                    self.ip += 1;
+                    
+                    
+                }
+                OpCode::OpNegate => {
+                    let first: u8 = self.stack.pop().unwrap();
+                    self.stack.push(first);
+                    self.ip += 1;
+                    
+                }
+                
+            }
+            
+            
+            
+        }
+        return InterpretResult::InterpretSuccess
+    }
 }
 
 impl Chunk{
@@ -31,61 +130,12 @@ impl Chunk{
         self.lines.push(linenum);
     }
 
-    // pub fn disassemble(&self, name: &str){
-    //     println!("=={}==", name);
-    //     for i in 0..self.lines.len(){
-    //         println!("{} {}",self.lines[i] ,self.code[i]);
-    //     }
-       
-    // }
-    pub fn disassemble(&self, name: &str) {
-      println!("== {} ==", name);
-
-      let mut offset: usize = 0;
-
-      while offset < self.code.len() {
-          print!("{:04}  ", offset);
-          let line = self.lines[offset];
-          print!("{:>3} ", line);
-
-
-          let opcodebyte = self.code[offset];
-          let opcode = OpCode::BitToOp(opcodebyte);
-
-          match opcode {
-              OpCode::OpConstant => {
-                  let idxbyte = self.code[offset + 1] as usize;
-                  let value = self.values[idxbyte];
-                  println!("OP_CONSTANT         {} {}", idxbyte, value);
-                  offset += 2;
-              }
-              OpCode::OpReturn => {
-                  println!("OP_RETURN");
-                  offset += 1;
-              }
-              OpCode::OpNegate => {
-                  println!("OP_NEGATE");
-                  offset += 1;
-              }
-              OpCode::OpAdd => {
-                  println!("OP_ADD");
-                  offset += 1;
-              }
-              OpCode::OpSubtract => {
-                  println!("OP_SUBTRACT");
-                  offset += 1;
-              }
-              OpCode::OpMultiply => {
-                  println!("OP_MULTIPLY");
-                  offset += 1;
-              }
-              OpCode::OpDivide => {
-                  println!("OP_DIVIDE");
-                  offset += 1;
-              }
-          }
-      }
-  }
+    pub fn disassemble(&self, name: &str){
+        println!("{} = {:?}", name, self.code);
+        // for i in 0..self.code.len(){
+        //     println!("{:?}", self.code);
+        // }
+    }
 
 
     pub fn disassemble_instruction(&mut self, offset: usize){
@@ -96,14 +146,12 @@ impl Chunk{
 
         // push opconstant into code, then push num into the next value slot then take the index of the value and push it into code.
 
-        // self.code.push(1);
-        
-        // self.values.push(num);
-        // let temp_num: u8 = self.values.len() as u8;
-        // self.code.push(temp_num);
-        // temp_num
+        self.code.push(1);
         self.values.push(num);
-        (self.values.len() - 1) as u8
+        let temp_num: u8 = self.values.len() as u8;
+        self.code.push(temp_num);
+        temp_num
+        
     }
   
   
@@ -113,20 +161,21 @@ impl Chunk{
 
     pub fn OpToBit(name: OpCode) -> u8{
 
-        match name {
+        match(name){
             OpCode::OpReturn => 0,
             OpCode::OpConstant => 1,
             OpCode::OpNegate => 2,
             OpCode::OpAdd => 3,
             OpCode::OpSubtract => 4,
             OpCode::OpMultiply => 5,
-            OpCode::OpDivide => 6
+            OpCode::OpDivide => 6,
+            OpCode::OpModulo => 7,
         }
     }
 
     pub fn BitToOp(num: u8) -> OpCode{
 
-        match num {
+        match(num){
             0 => OpCode::OpReturn,
             1 => OpCode::OpConstant,
             2 => OpCode::OpNegate,
@@ -134,6 +183,7 @@ impl Chunk{
             4 => OpCode::OpSubtract,
             5 => OpCode::OpMultiply,
             6 => OpCode::OpDivide,
+            7 => OpCode::OpModulo,
             _ => unreachable!()
         }
 
