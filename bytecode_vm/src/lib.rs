@@ -1,5 +1,5 @@
 
-pub type Value = u8;
+pub type Value = i16;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum OpCode {
@@ -65,7 +65,7 @@ impl Chunk {
         self.lines.push(linenum);
     }
 
-    pub fn add_constant(&mut self, num: u8) -> u8 {
+    pub fn add_constant(&mut self, num: Value) -> u8 {
       self.values.push(num);
       (self.values.len() - 1) as u8
   }
@@ -76,6 +76,62 @@ impl Chunk {
 
         let mut offset: usize = 0;
         while offset < self.code.len() {
+            let val = self.disassemble_instruction(offset);
+            offset += val;
+            // // byte offset
+            // print!("{:04}  ", offset);
+
+            // // line (assumes 1 line per code byte push)
+            // let line = self.lines[offset];
+            // print!("{:>3} ", line);
+
+            // // decode
+            // let opcodebyte = self.code[offset];
+            // let opcode = OpCode::BitToOp(opcodebyte);
+
+            // match opcode {
+            //     OpCode::OpConstant => {
+            //         // one-byte operand: constant index
+            //         let idxbyte = self.code[offset + 1] as usize;
+            //         let value = self.values[idxbyte];
+            //         println!("OP_CONSTANT         {} {}", idxbyte, value);
+            //         offset += 2; // opcode + operand
+            //     }
+            //     OpCode::OpReturn => {
+            //         println!("OP_RETURN");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpNegate => {
+            //         println!("OP_NEGATE");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpAdd => {
+            //         println!("OP_ADD");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpSubtract => {
+            //         println!("OP_SUBTRACT");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpMultiply => {
+            //         println!("OP_MULTIPLY");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpDivide => {
+            //         println!("OP_DIVIDE");
+            //         offset += 1;
+            //     }
+            //     OpCode::OpModulo => {
+            //         println!("OP_MODULO");
+            //         offset += 1;
+            //     }
+            // }
+        }
+    }
+
+    pub fn disassemble_instruction(&self, mut offset: usize) -> usize{
+        //println!("{:?}", self.code.get(offset..));
+        
             // byte offset
             print!("{:04}  ", offset);
 
@@ -87,50 +143,55 @@ impl Chunk {
             let opcodebyte = self.code[offset];
             let opcode = OpCode::BitToOp(opcodebyte);
 
+
             match opcode {
                 OpCode::OpConstant => {
                     // one-byte operand: constant index
                     let idxbyte = self.code[offset + 1] as usize;
                     let value = self.values[idxbyte];
                     println!("OP_CONSTANT         {} {}", idxbyte, value);
-                    offset += 2; // opcode + operand
+                    let offset = 2; // opcode + operand
+                    offset
                 }
                 OpCode::OpReturn => {
                     println!("OP_RETURN");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpNegate => {
                     println!("OP_NEGATE");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpAdd => {
                     println!("OP_ADD");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpSubtract => {
                     println!("OP_SUBTRACT");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpMultiply => {
                     println!("OP_MULTIPLY");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpDivide => {
                     println!("OP_DIVIDE");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
                 OpCode::OpModulo => {
                     println!("OP_MODULO");
-                    offset += 1;
+                    let offset = 1;
+                    offset
                 }
             }
         }
     }
 
-    pub fn disassemble_instruction(&self, offset: usize) {
-        println!("{:?}", self.code.get(offset..));
-    }
-}
 
 // --- VM ----------------------------------------------------------------------
 
@@ -148,9 +209,9 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
-    pub fn init_machine(chunk: Chunk) -> VirtualMachine {
+    pub fn init_machine() -> VirtualMachine {
         VirtualMachine {
-            chunk,
+            chunk: Chunk::init_chunk(),
             ip: 0,
             stack: Vec::new(),
         }
@@ -163,10 +224,14 @@ impl VirtualMachine {
     }
 
     pub fn run(&mut self) -> InterpretResult {
+
       while self.ip < self.chunk.code.len() {
+
           let byte = self.chunk.code[self.ip];
           let opcode = OpCode::BitToOp(byte);
-  
+          ///self.chunk.disassemble_instruction(self.ip);
+          println!("{:?}", self.stack);
+          
           match opcode {
               OpCode::OpReturn => {
                   self.ip += 1;
@@ -188,9 +253,10 @@ impl VirtualMachine {
   
               OpCode::OpNegate => {
                   if let Some(v) = self.stack.pop() {
-                      let neg = (0u8).wrapping_sub(v);
-                      self.stack.push(neg);
-                      self.ip += 1;
+                    //   let neg = (0u8).wrapping_sub(v);
+                    //   self.stack.push(neg);
+                    self.stack.push(v * -1);
+                    self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
                   }
@@ -247,9 +313,283 @@ impl VirtualMachine {
                   }
               }
           }
+          
       }
   
       InterpretResult::InterpretSuccess
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---------Helpers ----------
+    fn push_const(chunk: &mut Chunk, line: u32, v: Value) {
+        let idx = chunk.add_constant(v);
+        chunk.write_to_chunk(OpCode::OpToBit(OpCode::OpConstant), line);
+        chunk.write_to_chunk(idx, line);
+    }
+
+    fn push_op(chunk: &mut Chunk, line: u32, op: OpCode) {
+        chunk.write_to_chunk(OpCode::OpToBit(op), line);
+    }
+
+    fn run(chunk: Chunk) -> (InterpretResult, Vec<Value>) {
+        let mut vm = VirtualMachine::init_machine();
+        let res = vm.interpret(chunk);
+        (res, vm.stack)
+    }
+
+    // -----Opcode table---------
+    #[test]
+    fn opcode_roundtrip() {
+        let ops = [
+            OpCode::OpReturn,
+            OpCode::OpConstant,
+            OpCode::OpNegate,
+            OpCode::OpAdd,
+            OpCode::OpSubtract,
+            OpCode::OpMultiply,
+            OpCode::OpDivide,
+            OpCode::OpModulo,
+        ];
+        for op in ops {
+            let b = OpCode::OpToBit(op);
+            let round = OpCode::BitToOp(b);
+            assert_eq!(op, round, "Roundtrip failed for {:?}", op);
+        }
+    }
+
+    // ------- Structure-----
+    #[test]
+    fn line_tracking_matches_code_bytes() {
+        let mut c = Chunk::init_chunk();
+        //each write_to_chunk must push a matching line number
+        push_const(&mut c, 100, 1);
+        push_const(&mut c, 101, 2);
+        push_op(&mut c, 102, OpCode::OpAdd);
+        push_op(&mut c, 103, OpCode::OpReturn);
+
+        assert_eq!(c.code.len(), c.lines.len(), "code/line length mismatch");
+        assert_eq!(c.values, vec![1, 2]);
+        assert_eq!(c.lines[0], 100);
+        assert_eq!(c.lines[2], 101);
+        assert_eq!(c.lines[4], 102);
+        assert_eq!(c.lines[5], 103);
+    }
+
+    #[test]
+    fn disassemble_instruction_offsets() {
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 10, 42);    // 2 bytes
+        push_op(&mut c, 11, OpCode::OpNegate); // 1 byte
+        push_op(&mut c, 12, OpCode::OpReturn); // 1 byte
+
+        //xxpect: at 0 -> +2, at 2 -> +1, at 3 -> +1
+        let mut off = 0;
+        off += c.disassemble_instruction(off);
+        assert_eq!(off, 2);
+        off += c.disassemble_instruction(off);
+        assert_eq!(off, 3);
+        off += c.disassemble_instruction(off);
+        assert_eq!(off, 4);
+        assert_eq!(off, c.code.len());
+    }
+
+    // ----------arithmetic ----------
+    #[test]
+    fn constant_and_return_stack_top() {
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 1, 123);
+        push_op(&mut c, 2, OpCode::OpReturn);
+
+        let (res, stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretSuccess));
+        assert_eq!(stack, vec![123]);
+    }
+
+    #[test]
+    fn add_sub_mul_div_mod_chain() {
+        //program mirrors the sequence from the user’s main:
+        // 42 18 + 32 / 37 * 85 % 12 negate; return
+        let mut c = Chunk::init_chunk();
+
+        push_const(&mut c, 123, 42);
+        push_const(&mut c, 124, 18);
+        push_op(&mut c, 125, OpCode::OpAdd);
+
+        push_const(&mut c, 126, 32);
+        push_op(&mut c, 127, OpCode::OpDivide);
+
+        push_const(&mut c, 128, 37);
+        push_op(&mut c, 129, OpCode::OpMultiply);
+
+        push_const(&mut c, 130, 85);
+        push_op(&mut c, 131, OpCode::OpModulo);
+
+        push_const(&mut c, 132, 12);
+        push_op(&mut c, 133, OpCode::OpNegate);
+
+        push_op(&mut c, 134, OpCode::OpReturn);
+
+        let (res, stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretSuccess));
+
+        //compute expected with i16 math (no wrapping on / and % in code):
+        // (((42 + 18) / 32) * 37) % 85 = ((60 / 32) * 37) % 85 = (1 * 37) % 85 = 37
+        //push 12; negate => -12
+        // final stack should be [37, -12]
+        assert_eq!(stack, vec![37, -12]);
+    }
+
+    #[test]
+    fn negate_positive_and_negative() {
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 10, 7);
+        push_op(&mut c, 11, OpCode::OpNegate); // -> -7
+        push_const(&mut c, 12, -3);
+        push_op(&mut c, 13, OpCode::OpNegate); // -> +3
+        push_op(&mut c, 14, OpCode::OpReturn);
+
+        let (res, stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretSuccess));
+        assert_eq!(stack, vec![-7, 3]);
+    }
+
+    #[test]
+    fn wrapping_add_sub_mul() {
+        // uses i16::wrapping_* semantics
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 1, i16::MAX); // 32767
+        push_const(&mut c, 2, 1);
+        push_op(&mut c, 3, OpCode::OpAdd); // wraps to -32768
+
+        push_const(&mut c, 4, i16::MIN); // -32768
+        push_const(&mut c, 5, 1);
+        push_op(&mut c, 6, OpCode::OpSubtract); // (-32768) - 1 => wraps to 32767
+
+        push_const(&mut c, 7, 2000);
+        push_const(&mut c, 8, 20);
+        push_op(&mut c, 9, OpCode::OpMultiply); // 2000*20 = 40000 -> wraps to i16
+
+        push_op(&mut c, 10, OpCode::OpReturn);
+
+        let (res, stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretSuccess));
+
+        //compute expected wrapping
+        let a = i16::MAX.wrapping_add(1);          // -32768
+        let b = i16::MIN.wrapping_sub(1);          // 32767
+        let cval = 2000i16.wrapping_mul(20);       // wrapping product
+
+        assert_eq!(stack, vec![a, b, cval]);
+    }
+
+    // ---------- error handling ----------
+    #[test]
+    fn error_missing_constant_operand() {
+        // OpConstant with no following index byte
+        let mut c = Chunk::init_chunk();
+        push_op(&mut c, 1, OpCode::OpConstant);
+        // no operand byte
+        let (res, _stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretRuntimeError));
+    }
+
+    #[test]
+    fn error_bad_constant_index() {
+        // OpConstant with index that is out of bounds
+        let mut c = Chunk::init_chunk();
+        c.write_to_chunk(OpCode::OpToBit(OpCode::OpConstant), 1);
+        c.write_to_chunk(99, 1); // bogus index; values.len() == 0
+        let (res, _stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretRuntimeError));
+    }
+
+    #[test]
+    fn error_stack_underflow_binary_ops() {
+        //try each binary op with insufficient stack
+        for op in [
+            OpCode::OpAdd,
+            OpCode::OpSubtract,
+            OpCode::OpMultiply,
+            OpCode::OpDivide,
+            OpCode::OpModulo,
+        ] {
+            let mut c = Chunk::init_chunk();
+            //push only one constant, then a binary op
+            push_const(&mut c, 10, 1);
+            push_op(&mut c, 11, op);
+            let (res, _stack) = run(c);
+            assert!(
+                matches!(res, InterpretResult::InterpretRuntimeError),
+                "Expected runtime error for {:?} with one operand",
+                op
+            );
+        }
+    }
+
+    #[test]
+    fn error_divide_by_zero() {
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 1, 10);
+        push_const(&mut c, 2, 0);
+        push_op(&mut c, 3, OpCode::OpDivide);
+        let (res, _stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretRuntimeError));
+    }
+
+    #[test]
+    fn error_mod_by_zero() {
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 1, 10);
+        push_const(&mut c, 2, 0);
+        push_op(&mut c, 3, OpCode::OpModulo);
+        let (res, _stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretRuntimeError));
+    }
+
+    #[test]
+    fn return_terminates_execution() {
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 1, 5);
+        push_op(&mut c, 2, OpCode::OpReturn);
+        // garbage after return (should never execute)
+        push_const(&mut c, 999, 12345);
+        push_op(&mut c, 999, OpCode::OpAdd);
+
+        let (res, stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretSuccess));
+        assert_eq!(stack, vec![5], "VM should stop executing after OpReturn");
+    }
+
+    // ---------- order of operation----------
+    #[test]
+    fn left_to_right_eval_for_binary_ops() {
+        // ((8 - 3) * 2) + (20 / 5) % 6 = (5 * 2) + (4) % 6 = 10 + 4 = 14
+        let mut c = Chunk::init_chunk();
+        push_const(&mut c, 1, 8);
+        push_const(&mut c, 2, 3);
+        push_op(&mut c, 3, OpCode::OpSubtract);  // 5
+
+        push_const(&mut c, 4, 2);
+        push_op(&mut c, 5, OpCode::OpMultiply);  // 10
+
+        push_const(&mut c, 6, 20);
+        push_const(&mut c, 7, 5);
+        push_op(&mut c, 8, OpCode::OpDivide);    // 4
+
+        push_const(&mut c, 9, 6);
+        push_op(&mut c, 10, OpCode::OpModulo);   // 4 % 6 = 4
+
+        push_op(&mut c, 11, OpCode::OpAdd);      // 10 + 4 = 14
+        push_op(&mut c, 12, OpCode::OpReturn);
+
+        let (res, stack) = run(c);
+        assert!(matches!(res, InterpretResult::InterpretSuccess));
+        assert_eq!(stack, vec![14]);
+    }
+}
+
  
