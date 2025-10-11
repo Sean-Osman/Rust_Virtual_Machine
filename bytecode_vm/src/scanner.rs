@@ -1,6 +1,4 @@
-    
-    
-    pub enum TokenType{
+pub enum TokenType{
         TokenLeftParen, TokenRightParen,
         TokenLeftBrace, TokenRightBrace,
         TokenComma,
@@ -54,7 +52,7 @@
     }
 
     fn is_digit(character: char) -> bool{
-        chararacter.is_digit();
+        character.is_digit();
     }
 
     fn is_alpha(character: char) -> bool{
@@ -136,10 +134,87 @@
         false
     }
 
-    fn get_identifier(){
-
+    fn get_identifier(&mut self) -> token_type {
+        while self.current_index < self.source_code.len() {
+            let c = self.source_code[self.current_index] as char;
+            if is_alpha(c) || c == '_' { //is char alphabetic or an undcerscore
+                self.current_index += 1;
+            } else {
+                break;
+            }
+        }
+        return token_type {
+            token_type: TokenType::TokenIdentifier,
+            values: self.source_code[self.start_index..self.current_index].to_vec(), //gets bytes
+            lines: vec![self.line_number], //where the bytes r found
+        }
     }
 
-    fn make_token(token: TokenType){
-
+    fn make_token(&self, token: TokenType) -> token_type {
+        let value = self.source_code[self.start_index..self.current_index].to_vec();
+        token_type {
+            token_type: token,
+            values: value,
+            lines: vec![self.line_number],
+        }
     }
+
+    fn get_literal_number(&mut self) -> token_type {
+        // skip initial digits
+        while self.current_index < self.source_code.len() {
+            let c = self.source_code[self.current_index] as char;
+            if is_digit(c) {
+                self.current_index += 1; //skip
+            } else {
+                break;
+            }
+        }
+        // Check for decimal point and then run same code again
+        if self.current_index < self.source_code.len() && self.source_code[self.current_index] as char == '.' {
+            self.current_index += 1;
+            while self.current_index < self.source_code.len() {
+                let c = self.source_code[self.current_index] as char;
+                if is_digit(c) {
+                    self.current_index += 1;
+                } else {
+                    break;
+                }
+            }
+        }
+        return token_type {
+            token_type: TokenType::TokenNumber,
+            values: self.source_code[self.start_index..self.current_index].to_vec(),
+            lines: vec![self.line_number],
+        }
+    }
+
+
+    fn get_literal_string(&mut self) -> token_type {
+        while self.current_index < self.source_code.len() {
+            let c = self.source_code[self.current_index] as char;
+            if c == '"' {
+                self.current_index += 1; // we skip the closing quotes
+                return token_type {
+                    token_type: TokenType::TokenString,
+                    values: self.source_code[self.start_index + 1..self.current_index - 1].to_vec(),
+                    lines: vec![self.line_number],
+                };
+            }
+            self.current_index += 1;
+        }
+            return token_type {
+                token_type: TokenType::TokenError,
+                values: "Unterminated String Literal".as_bytes().to_vec(),
+                lines: vec![self.line_number],
+            }
+    }
+    
+        fn error_token(&self, message: &str) -> token_type {
+        token_type {
+            token_type: TokenType::TokenError,
+            values: message.as_bytes().to_vec(),
+            lines: vec![self.line_number],
+        }
+    }
+    
+    
