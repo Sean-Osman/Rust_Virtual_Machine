@@ -61,8 +61,8 @@
         character.is_alpha();
     }
 
-    fn is_at_end(&self) ->bool{
-        if source_code.len() >= 0{
+    fn is_at_end(&self) -> bool{
+        if source_code.len() <= 0{
             return true
         }
         return false
@@ -87,15 +87,59 @@
 
     fn advance(&self) -> usize{
        let temp: usize = self.source_code[self.current_index];
-      
-       source_code + 1;
+       self.current_index + 1;
        return temp
     }
 
     fn skip_next_character(){
-
+        self.current_index + 1;
     }
 
     fn skip_whitespace(){
-        
+        match self.source_code[self.current_index]{
+            " " => {
+                skip_next_character();
+            }
+            "\n" => {
+                skip_next_character();
+            }
+
+            "\t" => {
+                skip_next_character();
+            }
+
+            "\r" =>{
+                skip_next_character();
+            }
+            
+        }
+    }
+
+    fn skip_comment(){
+        // like skip_whitespace but checks for // 
+
+        if self.source_code[self.current_index] == "//"{
+            while self.source_code[self.current_index] != "\r"{
+                skip_next_character();
+            }
+        }
+    }
+
+    fn match_next(character: char)-> bool{
+        if character == self.source_code[self.current_index]{
+            self.current_index + 1;
+            true
+        }
+        if is_at_end(){
+            false
+        }
+        false
+    }
+
+    fn get_identifier(){
+
+    }
+
+    fn make_token(token: TokenType){
+
     }
