@@ -1,3 +1,7 @@
+pub mod scanner;
+
+use scanner::{Scanner, TokenType};
+
 
 pub type Value = i16;
 
@@ -42,8 +46,7 @@ impl OpCode {
     }
 }
 
-// --- Chunk -------------------------------------------------------------------
-
+// --- Chunk -----------------
 #[derive(Debug, Default)]
 pub struct Chunk {
     pub code: Vec<u8>,   // opcode bytes (and any inline operands)
@@ -129,7 +132,7 @@ impl Chunk {
         }
     }
 
-    pub fn disassemble_instruction(&self, mut offset: usize) -> usize{
+    pub fn disassemble_instruction(&self, offset: usize) -> usize{
         //println!("{:?}", self.code.get(offset..));
         
             // byte offset
@@ -222,6 +225,37 @@ impl VirtualMachine {
         self.ip = 0;
         self.run()
     }
+    pub fn interpret_source(&mut self, source_code: &str) -> InterpretResult {
+        self.compile(source_code);
+        InterpretResult::InterpretSuccess
+    }
+
+    pub fn compile(&mut self, source_code: &str) {
+        let mut scanner: Scanner = Scanner::init_scanner(source_code);
+        let mut line: usize = 0;
+
+        loop {
+            let token = scanner.scan_token();
+
+            if token.line != line {
+                print!("{:4} ", token.line);
+                line = token.line;
+            } else {
+                print!("   | ");
+            }
+
+            println!(
+                "{:?} {}, {:?}",
+                token.token_type,
+                token.length,
+                String::from_utf8(token.value.clone())
+            );
+
+            if let TokenType::TokenEof = token.token_type {
+                break;
+            }
+        }
+    }
 
     pub fn run(&mut self) -> InterpretResult {
 
@@ -229,7 +263,7 @@ impl VirtualMachine {
 
           let byte = self.chunk.code[self.ip];
           let opcode = OpCode::BitToOp(byte);
-          ///self.chunk.disassemble_instruction(self.ip);
+          //self.chunk.disassemble_instruction(self.ip);
           println!("{:?}", self.stack);
           
           match opcode {
@@ -319,6 +353,9 @@ impl VirtualMachine {
       InterpretResult::InterpretSuccess
     }
 }
+
+
+ 
 
 #[cfg(test)]
 mod tests {
@@ -590,6 +627,150 @@ mod tests {
         assert!(matches!(res, InterpretResult::InterpretSuccess));
         assert_eq!(stack, vec![14]);
     }
+
+// ----------------------- SCANNER TESTS ----------------------------
+
+    fn collect_tokens(src: &str) -> Vec<TokenType> {
+        let mut s = Scanner::init_scanner(src);
+        let mut out = Vec::new();
+        loop {
+            let t = s.scan_token();
+            out.push(t.token_type);
+            if matches!(t.token_type, TokenType::TokenEof) { break; }
+        }
+        out
+    }
+
+    #[test]
+    fn scan_single_char_tokens() {
+        let src = "(){};,.-+*/";
+        let got = collect_tokens(src);
+        use TokenType::*;
+        let expect = vec![
+            TokenLeftParen, TokenRightParen,
+            TokenLeftBrace, TokenRightBrace,
+            TokenSemicolon,
+            TokenComma,
+            TokenDot,
+            TokenMinus, TokenPlus,
+            TokenStar, // careful: '/' is TokenSlash; '*' before '/'
+            TokenSlash,
+            TokenEof,
+        ];
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn scan_two_char_comparisons() {
+        let src = "! != = == < <= > >=";
+        // include spaces to exercise whitespace skipper
+        let got = collect_tokens(src);
+        use TokenType::*;
+        let expect = vec![
+            TokenNot, TokenNotEqual, TokenEqual, TokenEqualEqual,
+            TokenLess, TokenLessEqual, TokenGreater, TokenGreaterEqual,
+            TokenEof,
+        ];
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn scan_numbers_and_identifiers() {
+        let src = "var x = 12.34\ny_2 = 7\n";
+        let mut s = Scanner::init_scanner(src);
+
+        let mut next = || s.scan_token().token_type;
+
+        use TokenType::*;
+        assert_eq!(next(), TokenVar);
+        assert_eq!(next(), TokenIdentifier); // x
+        assert_eq!(next(), TokenEqual);
+        assert_eq!(next(), TokenNumber);     // 12.34
+        assert_eq!(next(), TokenIdentifier); // y_2 (identifier allows digits after first)
+        assert_eq!(next(), TokenEqual);
+        assert_eq!(next(), TokenNumber);     // 7
+        assert_eq!(next(), TokenEof);
+    }
+
+    #[test]
+    fn scan_strings_and_comments() {
+        let src = r#"
+            // this is a comment
+            print "hello";
+            // another comment
+        "#;
+
+        let got = collect_tokens(src);
+        use TokenType::*;
+        let expect = vec![
+            TokenPrint, TokenString, TokenSemicolon,
+            TokenEof,
+        ];
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn unterminated_string_errors() {
+        let src = "print \"oops";
+        let mut s = Scanner::init_scanner(src);
+
+        let _ = s.scan_token(); // print
+        let tok = s.scan_token(); // should be error
+        assert!(matches!(tok.token_type, TokenType::TokenError));
+        let msg = String::from_utf8(tok.value).unwrap();
+        assert!(msg.contains("Unterminated"), "got error: {}", msg);
+    }
+
+    #[test]
+    fn keyword_recognition() {
+        let src = "and class else false for fun if nil or print return super this true var while";
+        let got = collect_tokens(src);
+        use TokenType::*;
+        let expect = vec![
+            TokenAnd, TokenClass, TokenElse, TokenFalse, TokenFor, TokenFun,
+            TokenIf, TokenNil, TokenOr, TokenPrint, TokenReturn, TokenSuper,
+            TokenThis, TokenTrue, TokenVar, TokenWhile, TokenEof,
+        ];
+        assert_eq!(got, expect);
+    }
+
+    #[test]
+    fn line_number_progresses_but_tokens_only_on_code_lines() {
+        let src = "var x = 1;\nprint x;\n\n// comment\nx = 2;";
+        let mut s = Scanner::init_scanner(src);
+
+        let mut toks = Vec::new();
+        loop {
+            let t = s.scan_token();
+            toks.push(t);
+            if matches!(toks.last().unwrap().token_type, TokenType::TokenEof) { break; }
+        }
+
+        use std::collections::BTreeSet;
+        let lines: BTreeSet<usize> = toks.iter().map(|t| t.line).collect();
+
+        // Tokens appear on code lines 1, 2, and 5
+        assert!(lines.contains(&1));
+        assert!(lines.contains(&2));
+        assert!(lines.contains(&5));
+
+        // No tokens should be produced for the blank line (3) or comment-only line (4)
+        assert!(!lines.contains(&3));
+        assert!(!lines.contains(&4));
+    }
+
+
+    #[test]
+    fn unknown_character_produces_error() {
+        let src = "@";
+        let mut s = Scanner::init_scanner(src);
+        let t = s.scan_token();
+        assert!(matches!(t.token_type, TokenType::TokenError));
+       let msg = String::from_utf8(t.value).unwrap();
+        assert!(msg.contains("Unknown"));
+    }
 }
+
+
 
  
