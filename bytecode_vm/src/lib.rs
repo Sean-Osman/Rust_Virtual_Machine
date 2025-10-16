@@ -81,54 +81,8 @@ impl Chunk {
         while offset < self.code.len() {
             let val = self.disassemble_instruction(offset);
             offset += val;
-            // // byte offset
-            // print!("{:04}  ", offset);
-
-            // // line (assumes 1 line per code byte push)
-            // let line = self.lines[offset];
-            // print!("{:>3} ", line);
-
-            // // decode
-            // let opcodebyte = self.code[offset];
-            // let opcode = OpCode::BitToOp(opcodebyte);
-
-            // match opcode {
-            //     OpCode::OpConstant => {
-            //         // one-byte operand: constant index
-            //         let idxbyte = self.code[offset + 1] as usize;
-            //         let value = self.values[idxbyte];
-            //         println!("OP_CONSTANT         {} {}", idxbyte, value);
-            //         offset += 2; // opcode + operand
-            //     }
-            //     OpCode::OpReturn => {
-            //         println!("OP_RETURN");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpNegate => {
-            //         println!("OP_NEGATE");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpAdd => {
-            //         println!("OP_ADD");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpSubtract => {
-            //         println!("OP_SUBTRACT");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpMultiply => {
-            //         println!("OP_MULTIPLY");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpDivide => {
-            //         println!("OP_DIVIDE");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpModulo => {
-            //         println!("OP_MODULO");
-            //         offset += 1;
-            //     }
-            // }
+            
+           
         }
     }
 
