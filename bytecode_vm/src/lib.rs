@@ -1,5 +1,6 @@
 pub mod scanner;
-
+pub mod compiler; 
+use crate::compiler::Compiler;
 use scanner::{Scanner, TokenType};
 
 
@@ -47,7 +48,7 @@ impl OpCode {
 }
 
 // --- Chunk -----------------
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Chunk {
     pub code: Vec<u8>,   // opcode bytes (and any inline operands)
     pub lines: Vec<u32>, // line per byte in code
@@ -180,8 +181,16 @@ impl VirtualMachine {
         self.run()
     }
     pub fn interpret_source(&mut self, source_code: &str) -> InterpretResult {
-        self.compile(source_code);
-        InterpretResult::InterpretSuccess
+        // Use the real compiler to produce bytecode, then run it
+        let mut the_compiler = Compiler::init_compiler();
+        if !the_compiler.compile(source_code) {
+            println!("Finished Compiling");
+            return InterpretResult::InterpretCompileError;
+        }
+        println!("Starting run");
+        self.chunk = the_compiler.get_chunk();
+        self.ip = 0;
+        self.run()
     }
 
     pub fn compile(&mut self, source_code: &str) {
