@@ -1,5 +1,6 @@
 pub mod scanner;
-
+pub mod compiler; 
+use crate::compiler::Compiler;
 use scanner::{Scanner, TokenType};
 
 
@@ -47,7 +48,7 @@ impl OpCode {
 }
 
 // --- Chunk -----------------
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Chunk {
     pub code: Vec<u8>,   // opcode bytes (and any inline operands)
     pub lines: Vec<u32>, // line per byte in code
@@ -81,54 +82,8 @@ impl Chunk {
         while offset < self.code.len() {
             let val = self.disassemble_instruction(offset);
             offset += val;
-            // // byte offset
-            // print!("{:04}  ", offset);
-
-            // // line (assumes 1 line per code byte push)
-            // let line = self.lines[offset];
-            // print!("{:>3} ", line);
-
-            // // decode
-            // let opcodebyte = self.code[offset];
-            // let opcode = OpCode::BitToOp(opcodebyte);
-
-            // match opcode {
-            //     OpCode::OpConstant => {
-            //         // one-byte operand: constant index
-            //         let idxbyte = self.code[offset + 1] as usize;
-            //         let value = self.values[idxbyte];
-            //         println!("OP_CONSTANT         {} {}", idxbyte, value);
-            //         offset += 2; // opcode + operand
-            //     }
-            //     OpCode::OpReturn => {
-            //         println!("OP_RETURN");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpNegate => {
-            //         println!("OP_NEGATE");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpAdd => {
-            //         println!("OP_ADD");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpSubtract => {
-            //         println!("OP_SUBTRACT");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpMultiply => {
-            //         println!("OP_MULTIPLY");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpDivide => {
-            //         println!("OP_DIVIDE");
-            //         offset += 1;
-            //     }
-            //     OpCode::OpModulo => {
-            //         println!("OP_MODULO");
-            //         offset += 1;
-            //     }
-            // }
+            
+           
         }
     }
 
@@ -226,8 +181,16 @@ impl VirtualMachine {
         self.run()
     }
     pub fn interpret_source(&mut self, source_code: &str) -> InterpretResult {
-        self.compile(source_code);
-        InterpretResult::InterpretSuccess
+        // Use the real compiler to produce bytecode, then run it
+        let mut the_compiler = Compiler::init_compiler();
+        if !the_compiler.compile(source_code) {
+            println!("Finished Compiling");
+            return InterpretResult::InterpretCompileError;
+        }
+        println!("Starting run");
+        self.chunk = the_compiler.get_chunk();
+        self.ip = 0;
+        self.run()
     }
 
     pub fn compile(&mut self, source_code: &str) {
