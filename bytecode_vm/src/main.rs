@@ -1,22 +1,48 @@
-//Sean, Nando, Bill
-
-use bytecode_vm::{Chunk, OpCode}; //this imports all fns and structs
+use std::env;
+use std::io;
+use std::io::Write;
+use std::fs;
+use bytecode_vm::{VirtualMachine, InterpretResult}; // only what's needed
 
 fn main() {
-    println!("Hello, world!");
+    // Initialize the Bytecode Stack-Based Virtual Machine
+    let mut vm: VirtualMachine = VirtualMachine::init_machine();
 
-    println!("Creating a Bytecode chunk ...");
+    // Get the command line arguments
+    let args: Vec<String> = env::args().collect();
+    dbg!(&args);
 
-    let mut chunk: Chunk = Chunk::init_chunk();
+    if args.len() == 1 {
+        read_eval_print_loop(&mut vm);
+    } else if args.len() == 2 {
+        run_file(&mut vm, &args[1]);
+    } else {
+        println!("Usage: ");
+        println!("    cargo run");
+        println!("        to use the lox read-eval-print-loop");
+        println!("    cargo run -- lox_program_file_name");
+        println!("        to execute a lox program file");
+    }
+}
 
-    let cons: u8 = chunk.add_constant(42);
-    chunk.write_to_chunk(OpCode::OpToBit(OpCode::OpConstant), 123);
-    chunk.write_to_chunk(cons, 123);
+fn read_eval_print_loop(vm: &mut VirtualMachine) {
+    loop {
+        // Print the read prompt
+        print!("> ");
+        io::stdout().flush().expect("flush failed");
 
-    let cons: u8 = chunk.add_constant(18);
-    chunk.write_to_chunk(OpCode::OpToBit(OpCode::OpConstant), 124);
-    chunk.write_to_chunk(cons, 124);
+        // Get a line from the user
+        let mut lox_code = String::new();
+        io::stdin().read_line(&mut lox_code).expect("Failed to read line");
 
-    chunk.write_to_chunk(OpCode::OpToBit(OpCode::OpReturn), 125);
-    chunk.disassemble("Test chunk");
+        // Scanner path: scan and print tokens
+        vm.interpret_source(&lox_code);
+    }
+}
+
+fn run_file(vm: &mut VirtualMachine, infile: &str) {
+    let lox_code = fs::read_to_string(infile).expect("Unable to read the file");
+
+    // Scanner path: scan and print tokens
+    vm.interpret_source(&lox_code);
 }
