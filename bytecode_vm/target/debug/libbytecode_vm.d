@@ -1,1 +1,1 @@
-C:\Users\nando\documents\VirtualMachine\bytecode_vm\target\debug\libbytecode_vm.rlib: C:\Users\nando\documents\VirtualMachine\bytecode_vm\src\lib.rs C:\Users\nando\documents\VirtualMachine\bytecode_vm\src\scanner.rs
+C:\Users\nando\documents\VirtualMachine\bytecode_vm\target\debug\libbytecode_vm.rlib: C:\Users\nando\documents\VirtualMachine\bytecode_vm\src\compiler.rs C:\Users\nando\documents\VirtualMachine\bytecode_vm\src\lib.rs C:\Users\nando\documents\VirtualMachine\bytecode_vm\src\scanner.rs

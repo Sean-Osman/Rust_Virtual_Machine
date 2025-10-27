@@ -116,7 +116,7 @@ impl Parser {
         m.insert(TokenType::TokenError,        ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
         m.insert(TokenType::TokenEof,          ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
 
-        
+        m
     }
 }
 
@@ -343,6 +343,4 @@ impl Compiler {
         self.parser.had_error = true;
     }
 }
-    fn compile(source_code: &str) -> bool{
-
-    }
+    
