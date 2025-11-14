@@ -26,6 +26,10 @@ pub enum OpCode {
     OpNil,
     OpTrue,
     OpFalse,
+    OpNot,
+    OpEqual,
+    OpGreater,
+    OpLess
 }
 
 impl OpCode {
@@ -41,7 +45,11 @@ impl OpCode {
             OpCode::OpModulo   => 7,
             OpCode::OpNil      => 8,
             OpCode::OpTrue     => 9,
-            OpCode::OpFalse   => 10,
+            OpCode::OpFalse    => 10,
+            OpCode::OpNot      => 11,
+            OpCode::OpEqual    => 12,
+            OpCode::OpGreater  => 13,
+            OpCode::OpLess      => 14
         }
     }
 
@@ -58,6 +66,10 @@ impl OpCode {
             8 => OpCode::OpNil,
             9 => OpCode::OpTrue,
             10 => OpCode::OpFalse,
+            11 => OpCode::OpNot,
+            12 => OpCode::OpEqual,
+            13 => OpCode::OpGreater,
+            14 => OpCode::OpLess,
             _ => unreachable!(),
         }
     }
@@ -162,6 +174,42 @@ impl Chunk {
                     let offset = 1;
                     offset
                 }
+                OpCode::OpNil =>{
+                    println!("OP_NIL");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpTrue =>{
+                    println!("OP_TRUE");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpFalse =>{
+                    println!("OP_FALSE");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpNot =>{
+                    println!("OP_NOT");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpEqual=>{
+                    println!("OP_EQUAL");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpGreater=>{
+                    println!("OP_GREATER");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpLess=>{
+                    println!("OP_LESS");
+                    let offset = 1;
+                    offset
+                }
+
             }
         }
     }
@@ -191,6 +239,21 @@ impl VirtualMachine {
         }
     }
 
+    fn values_equal(a: Value, b: Value) -> bool {
+    match (a, b) {
+        (Value::ValBool(x), Value::ValBool(y)) => x == y,
+        (Value::ValNumber(x), Value::ValNumber(y)) => x == y,
+        (Value::ValNil, Value::ValNil) => true,
+        _ => false,
+            }
+    }
+    fn is_falsey(val: &Value) -> bool {
+            match val {
+                Value::ValNil => true,
+                Value::ValBool(false) => true,
+                _ => false,
+            }
+        }
      fn runtime_error( self: &mut VirtualMachine, message: &str ) {
             println!("{}", message );
             println!("[line {}] in script", self.chunk.lines[self.ip]);
@@ -355,7 +418,28 @@ impl VirtualMachine {
               OpCode::OpTrue=>{
                 self.stack.push(Value::ValBool(true))
               }
+              OpCode::OpNot => {
+                  match self.stack.pop() {
+                      Some(v) => {
+                          let result = !VirtualMachine::is_falsey(&v);
+                          self.stack.push(Value::ValBool(result));
+                          self.ip += 1;
+                      }
+                      None => {
+                          return InterpretResult::InterpretRuntimeError;
+                      }
+                  }
               }
+             OpCode::OpEqual =>{
+                self.stack.push(OpCode::OpEqual);
+             } 
+             OpCode::OpGreater =>{
+
+             }
+             OpCode::OpEqual=> {
+
+             }
+        }
           
           
       }

@@ -123,7 +123,12 @@ impl Parser {
         m.insert(TokenType::TokenFalse,        ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
         m.insert(TokenType::TokenTrue,         ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
         m.insert(TokenType::TokenNot,          ParseRule::init_parse_rule(unary, None, Precedence::PrecNone));
-
+        m.insert(TokenType::TokenNotEqual,     ParseRule::init_parse_rule(None, binary, Precedence::PrecEquality));
+        m.insert(TokenType::TokenEqualEqual, ParseRule::init_parse_rule(none, binary, Precedence::PrecEquality));
+        m.insert(TokenType::TokenGreater, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
+        m.insert(TokenType::TokenGreaterEqual, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
+        m.insert(TokenType::TokenLess, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
+        m.insert(TokenType::TokenLessEqual, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
         m
     }
 }
@@ -247,8 +252,10 @@ impl Compiler {
         self.parse_precedence(Precedence::PrecUnary);
         match operator_type {
             TokenType::TokenMinus => self.emit_byte(OpCode::OpToBit(OpCode::OpNegate)),
+            TokenType::TokenNot => self.emit_byte(OpCode::OpNot as u8),
             _ => { /* '!' not implemented in this assignment */ }
         }
+       
     }
 
     pub fn number(&mut self) {
