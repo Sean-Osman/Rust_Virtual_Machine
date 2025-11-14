@@ -4,7 +4,16 @@ use crate::compiler::Compiler;
 use scanner::{Scanner, TokenType};
 
 
-pub type Value = i16;
+//pub type Value = i16;
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Value{
+    ValBool(bool),
+    ValNumber(Number),
+    ValNil
+
+}
+
+pub type Number = i16;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum OpCode {

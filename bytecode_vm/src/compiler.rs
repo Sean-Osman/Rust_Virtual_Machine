@@ -236,9 +236,11 @@ impl Compiler {
     }
 
     pub fn number(&mut self) {
+        use Value::*;
         let lexeme = String::from_utf8(self.parser.previous.value.clone()).unwrap_or_default();
+        let constant = ValNumber(lexeme.parse::<i16>().unwrap());
         match lexeme.parse::<i16>() {
-            Ok(v) => self.emit_constant(v as Value),
+            Ok(test) => self.emit_constant(test),
             Err(_) => self.error("Invalid number literal."),
         }
     }
