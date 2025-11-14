@@ -4,7 +4,14 @@ use crate::compiler::Compiler;
 use scanner::{Scanner, TokenType};
 
 
-pub type Value = i16;
+//pub type Value = i16;
+pub type Number = i16;
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Value{
+    ValBool(bool),
+    ValNumber(Number),
+    ValNil
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum OpCode {
@@ -16,6 +23,9 @@ pub enum OpCode {
     OpMultiply,
     OpDivide,
     OpModulo,
+    OpNil,
+    OpTrue,
+    OpFalse,
 }
 
 impl OpCode {
@@ -29,6 +39,9 @@ impl OpCode {
             OpCode::OpMultiply => 5,
             OpCode::OpDivide   => 6,
             OpCode::OpModulo   => 7,
+            OpCode::OpNil      => 8,
+            OpCode::OpTrue     => 9,
+            OpCode::OpFalse   => 10,
         }
     }
 
@@ -42,6 +55,9 @@ impl OpCode {
             5 => OpCode::OpMultiply,
             6 => OpCode::OpDivide,
             7 => OpCode::OpModulo,
+            8 => OpCode::OpNil,
+            9 => OpCode::OpTrue,
+            10 => OpCode::OpFalse,
             _ => unreachable!(),
         }
     }
@@ -175,6 +191,11 @@ impl VirtualMachine {
         }
     }
 
+     fn runtime_error( self: &mut VirtualMachine, message: &str ) {
+            println!("{}", message );
+            println!("[line {}] in script", self.chunk.lines[self.ip]);
+        }
+
     pub fn interpret(&mut self, chunk: Chunk) -> InterpretResult {
         self.chunk = chunk;
         self.ip = 0;
@@ -260,7 +281,7 @@ impl VirtualMachine {
               }
   
               OpCode::OpAdd => {
-                  if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(b), Some((a))) = (self.stack.pop(), self.stack.pop()) {
                       self.stack.push(a.wrapping_add(b));
                       self.ip += 1;
                   } else {
@@ -309,7 +330,33 @@ impl VirtualMachine {
                       return InterpretResult::InterpretRuntimeError;
                   }
               }
-          }
+
+              OpCode::OpNegate =>{
+                match self.stack.pop(){
+                    Some(Value::ValNumber(n)) => self.stack.push(Value::ValNumber((-n))),
+                    Some(_) => {
+                        self.runtime_error("Operand must be a number");
+                        return InterpretResult::InterpretRuntimeError
+                    }
+                    None => {
+                        self.runtime_error("Operand must be a number");
+                        return InterpretResult::InterpretRuntimeError
+                    }
+                }
+              }
+
+              OpCode::OpNil=>{
+                self.stack.push(Value::ValNil)
+              }
+
+              OpCode::OpFalse=>{
+                self.stack.push(Value::ValBool(false))
+              }
+              OpCode::OpTrue=>{
+                self.stack.push(Value::ValBool(true))
+              }
+              }
+          
           
       }
   
@@ -401,7 +448,7 @@ mod tests {
     #[test]
     fn constant_and_return_stack_top() {
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 1, 123);
+        push_const(&mut c, 1, Value::ValNumber(123));
         push_op(&mut c, 2, OpCode::OpReturn);
 
         let (res, stack) = run(c);

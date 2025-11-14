@@ -64,6 +64,8 @@ impl Parser {
         *self.parse_rules.get(&ttype).unwrap_or(&default)
     }
 
+
+
     //pratt table mapping tokens to {prefix, infix, precedence}
     pub fn pratt_table() -> HashMap<TokenType, ParseRule> {
         let mut m: HashMap<TokenType, ParseRule> = HashMap::new();
@@ -72,7 +74,9 @@ impl Parser {
         let unary: ParseFn = Some(Compiler::unary);
         let binary: ParseFn = Some(Compiler::binary);
         let number: ParseFn = Some(Compiler::number);
+        let literal: ParseFn = Some(Compiler::literal);
         let none: ParseFn = None;
+    
 
         // (key, {prefix, infix, precedence})
         m.insert(TokenType::TokenLeftParen,    ParseRule::init_parse_rule(grouping, none,   Precedence::PrecNone));
@@ -115,6 +119,10 @@ impl Parser {
         m.insert(TokenType::TokenWhile,        ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
         m.insert(TokenType::TokenError,        ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
         m.insert(TokenType::TokenEof,          ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
+        m.insert(TokenType::TokenNil,          ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
+        m.insert(TokenType::TokenFalse,        ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
+        m.insert(TokenType::TokenTrue,         ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
+        m.insert(TokenType::TokenNot,          ParseRule::init_parse_rule(unary, None, Precedence::PrecNone));
 
         m
     }
@@ -176,6 +184,14 @@ impl Compiler {
         self.chunk.clone()
     }
 
+    pub fn literal(&mut self) {
+    match self.parser.previous.token_type {
+        TokenType::TokenNil => self.emit_byte(OpCode::OpNil as u8),
+        TokenType::TokenFalse => self.emit_byte(OpCode::OpFalse as u8),
+        TokenType::TokenTrue => self.emit_byte(OpCode::OpTrue as u8),
+        _ => {}
+        }
+    }   
     //compile pipeline
     pub fn compile(&mut self, source_code: &str) -> bool {
         // 1. init scanner
@@ -237,8 +253,9 @@ impl Compiler {
 
     pub fn number(&mut self) {
         let lexeme = String::from_utf8(self.parser.previous.value.clone()).unwrap_or_default();
+        
         match lexeme.parse::<i16>() {
-            Ok(v) => self.emit_constant(v as Value),
+            Ok(v) => self.emit_constant(Value::ValNumber(v)),
             Err(_) => self.error("Invalid number literal."),
         }
     }
