@@ -135,7 +135,7 @@ impl Chunk {
                     // one-byte operand: constant index
                     let idxbyte = self.code[offset + 1] as usize;
                     let value = self.values[idxbyte];
-                    println!("OP_CONSTANT         {} {}", idxbyte, value);
+                    println!("OP_CONSTANT         {} {:?}", idxbyte, value);
                     let offset = 2; // opcode + operand
                     offset
                 }
@@ -333,10 +333,10 @@ impl VirtualMachine {
               }
   
               OpCode::OpNegate => {
-                  if let Some(v) = self.stack.pop() {
+                  if let Some(Value::ValNumber(v)) = self.stack.pop() {
                     //   let neg = (0u8).wrapping_sub(v);
                     //   self.stack.push(neg);
-                    self.stack.push(v * -1);
+                    self.stack.push(Value::ValNumber(v * -1));
                     self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
@@ -344,8 +344,8 @@ impl VirtualMachine {
               }
   
               OpCode::OpAdd => {
-                  if let (Some(b), Some((a))) = (self.stack.pop(), self.stack.pop()) {
-                      self.stack.push(a.wrapping_add(b));
+                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                      self.stack.push(Value::ValNumber(a.wrapping_add(b)));
                       self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
@@ -353,8 +353,8 @@ impl VirtualMachine {
               }
   
               OpCode::OpSubtract => {
-                  if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
-                      self.stack.push(a.wrapping_sub(b));
+                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                      self.stack.push(Value::ValNumber(a.wrapping_sub(b)));
                       self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
@@ -362,8 +362,8 @@ impl VirtualMachine {
               }
   
               OpCode::OpMultiply => {
-                  if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
-                      self.stack.push(a.wrapping_mul(b));
+                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                      self.stack.push(Value::ValNumber(a.wrapping_mul(b)));
                       self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
@@ -371,11 +371,11 @@ impl VirtualMachine {
               }
   
               OpCode::OpDivide => {
-                  if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
                       if b == 0 {
                           return InterpretResult::InterpretRuntimeError;
                       }
-                      self.stack.push(a / b);
+                      self.stack.push(Value::ValNumber(a / b));
                       self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
@@ -383,11 +383,11 @@ impl VirtualMachine {
               }
   
               OpCode::OpModulo => {
-                  if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
                       if b == 0 {
                           return InterpretResult::InterpretRuntimeError;
                       }
-                      self.stack.push(a % b);
+                      self.stack.push(Value::ValNumber(a % b));
                       self.ip += 1;
                   } else {
                       return InterpretResult::InterpretRuntimeError;
@@ -409,21 +409,44 @@ impl VirtualMachine {
               }
 
               OpCode::OpNil=>{
-                self.stack.push(Value::ValNil)
+                match self.stack.pop(){
+                    Some(v)=>{
+                        self.stack.push(Value::ValNil)
+                    }
+                    None =>{
+                        return InterpretResult::InterpretRuntimeError;
+                    }
+                }
               }
 
               OpCode::OpFalse=>{
-                self.stack.push(Value::ValBool(false))
+                match self.stack.pop(){
+                    Some(v)=>{
+                        self.stack.push(Value::ValBool((false)))
+                        // self.ip += 1;
+                    }
+                    None =>{
+                        return InterpretResult::InterpretRuntimeError;
+                    }
+                }
               }
               OpCode::OpTrue=>{
-                self.stack.push(Value::ValBool(true))
+                match self.stack.pop(){
+                    Some(v)=>{
+                        self.stack.push(Value::ValBool((true)))
+                        // self.ip += 1;
+                    }
+                    None =>{
+                        return InterpretResult::InterpretRuntimeError;
+                    }
+                }
               }
               OpCode::OpNot => {
                   match self.stack.pop() {
                       Some(v) => {
                           let result = !VirtualMachine::is_falsey(&v);
                           self.stack.push(Value::ValBool(result));
-                          self.ip += 1;
+                        //   self.ip += 1;
                       }
                       None => {
                           return InterpretResult::InterpretRuntimeError;
@@ -431,13 +454,43 @@ impl VirtualMachine {
                   }
               }
              OpCode::OpEqual =>{
-                self.stack.push(OpCode::OpEqual);
+                if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
+                      if b == a {
+                          self.stack.push(Value::ValBool((true)));
+                      }
+                      if b != a {
+                        self.stack.push(Value::ValBool((false)));
+                      }
+                      
+                  } else {
+                      return InterpretResult::InterpretRuntimeError;
+                  }
              } 
              OpCode::OpGreater =>{
-
+                if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
+                      if b > a {
+                          self.stack.push(Value::ValBool((true)));
+                      }
+                      if b < a {
+                        self.stack.push(Value::ValBool((false)));
+                      }
+                      
+                  } else {
+                      return InterpretResult::InterpretRuntimeError;
+                  }
              }
              OpCode::OpLess=>{
-
+                if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
+                      if b < a {
+                          self.stack.push(Value::ValBool((true)));
+                      }
+                      if b > a {
+                        self.stack.push(Value::ValBool((false)));
+                      }
+                      
+                  } else {
+                      return InterpretResult::InterpretRuntimeError;
+                  }
              }
         }
           
