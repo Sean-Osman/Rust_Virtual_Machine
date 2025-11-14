@@ -279,6 +279,32 @@ impl Compiler {
             TokenType::TokenMinus => self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract)),
             TokenType::TokenStar  => self.emit_byte(OpCode::OpToBit(OpCode::OpMultiply)),
             TokenType::TokenSlash => self.emit_byte(OpCode::OpToBit(OpCode::OpDivide)),
+            TokenType::TokenEqualEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenNotEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenGreater => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenGreaterEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenLess => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenLessEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+
             _ => {}
         }
     }

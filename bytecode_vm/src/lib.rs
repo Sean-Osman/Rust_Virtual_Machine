@@ -436,7 +436,7 @@ impl VirtualMachine {
              OpCode::OpGreater =>{
 
              }
-             OpCode::OpEqual=> {
+             OpCode::OpLess=>{
 
              }
         }
