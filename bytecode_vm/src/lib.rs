@@ -399,6 +399,7 @@ impl VirtualMachine {
                     Some(Value::ValNumber(n)) => self.stack.push(Value::ValNumber((-n))),
                     Some(_) => {
                         self.runtime_error("Operand must be a number");
+                        self.ip += 1;
                         return InterpretResult::InterpretRuntimeError
                     }
                     None => {
@@ -411,7 +412,8 @@ impl VirtualMachine {
               OpCode::OpNil=>{
                 match self.stack.pop(){
                     Some(v)=>{
-                        self.stack.push(Value::ValNil)
+                        self.stack.push(Value::ValNil);
+                        self.ip += 1;
                     }
                     None =>{
                         return InterpretResult::InterpretRuntimeError;
@@ -422,7 +424,8 @@ impl VirtualMachine {
               OpCode::OpFalse=>{
                 match self.stack.pop(){
                     Some(v)=>{
-                        self.stack.push(Value::ValBool((false)))
+                        self.stack.push(Value::ValBool((false)));
+                        self.ip += 1;
                         // self.ip += 1;
                     }
                     None =>{
@@ -433,8 +436,8 @@ impl VirtualMachine {
               OpCode::OpTrue=>{
                 match self.stack.pop(){
                     Some(v)=>{
-                        self.stack.push(Value::ValBool((true)))
-                        // self.ip += 1;
+                        self.stack.push(Value::ValBool((true)));
+                        self.ip += 1;
                     }
                     None =>{
                         return InterpretResult::InterpretRuntimeError;
@@ -446,7 +449,7 @@ impl VirtualMachine {
                       Some(v) => {
                           let result = !VirtualMachine::is_falsey(&v);
                           self.stack.push(Value::ValBool(result));
-                        //   self.ip += 1;
+                          self.ip += 1;
                       }
                       None => {
                           return InterpretResult::InterpretRuntimeError;
@@ -457,9 +460,11 @@ impl VirtualMachine {
                 if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b == a {
                           self.stack.push(Value::ValBool((true)));
+                          self.ip += 1;
                       }
                       if b != a {
                         self.stack.push(Value::ValBool((false)));
+                        self.ip += 1;
                       }
                       
                   } else {
@@ -470,9 +475,11 @@ impl VirtualMachine {
                 if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b > a {
                           self.stack.push(Value::ValBool((true)));
+                          self.ip += 1;
                       }
                       if b < a {
                         self.stack.push(Value::ValBool((false)));
+                        self.ip += 1;
                       }
                       
                   } else {
@@ -483,9 +490,11 @@ impl VirtualMachine {
                 if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b < a {
                           self.stack.push(Value::ValBool((true)));
+                          self.ip += 1;
                       }
                       if b > a {
                         self.stack.push(Value::ValBool((false)));
+                        self.ip += 1;
                       }
                       
                   } else {
