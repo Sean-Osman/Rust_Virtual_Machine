@@ -77,6 +77,7 @@ impl Parser {
         let binary: ParseFn = Some(Compiler::binary);
         let number: ParseFn = Some(Compiler::number);
         let literal: ParseFn = Some(Compiler::literal);
+        let variable: ParseFn = Some(Compiler::variable);
         let none: ParseFn = None;
     
 
@@ -121,16 +122,17 @@ impl Parser {
         m.insert(TokenType::TokenWhile,        ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
         m.insert(TokenType::TokenError,        ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
         m.insert(TokenType::TokenEof,          ParseRule::init_parse_rule(none,     none,   Precedence::PrecFactor));
-        m.insert(TokenType::TokenNil,          ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
-        m.insert(TokenType::TokenFalse,        ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
-        m.insert(TokenType::TokenTrue,         ParseRule::init_parse_rule(literal, none, Precedence::PrecNone));
-        m.insert(TokenType::TokenNot,          ParseRule::init_parse_rule(unary, None, Precedence::PrecNone));
-        m.insert(TokenType::TokenNotEqual,     ParseRule::init_parse_rule(None, binary, Precedence::PrecEquality));
-        m.insert(TokenType::TokenEqualEqual, ParseRule::init_parse_rule(none, binary, Precedence::PrecEquality));
-        m.insert(TokenType::TokenGreater, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
-        m.insert(TokenType::TokenGreaterEqual, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
-        m.insert(TokenType::TokenLess, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
-        m.insert(TokenType::TokenLessEqual, ParseRule::init_parse_rule(None, binary, Precedence::PrecComparison));
+        m.insert(TokenType::TokenNil,          ParseRule::init_parse_rule(literal, none,    Precedence::PrecNone));
+        m.insert(TokenType::TokenFalse,        ParseRule::init_parse_rule(literal, none,    Precedence::PrecNone));
+        m.insert(TokenType::TokenTrue,         ParseRule::init_parse_rule(literal, none,    Precedence::PrecNone));
+        m.insert(TokenType::TokenNot,          ParseRule::init_parse_rule(unary, none,      Precedence::PrecNone));
+        m.insert(TokenType::TokenNotEqual,     ParseRule::init_parse_rule(none, binary,     Precedence::PrecEquality));
+        m.insert(TokenType::TokenEqualEqual,   ParseRule::init_parse_rule(none, binary,     Precedence::PrecEquality));
+        m.insert(TokenType::TokenGreater,      ParseRule::init_parse_rule(none, binary,     Precedence::PrecComparison));
+        m.insert(TokenType::TokenGreaterEqual, ParseRule::init_parse_rule(none, binary,     Precedence::PrecComparison));
+        m.insert(TokenType::TokenLess,         ParseRule::init_parse_rule(none, binary,     Precedence::PrecComparison));
+        m.insert(TokenType::TokenLessEqual,    ParseRule::init_parse_rule(none, binary,     Precedence::PrecComparison));
+        m.insert(TokenType::TokenIdentifier,   ParseRule::init_parse_rule(variable, none,   Precedence::PrecNone));
         m
     }
 }
@@ -186,7 +188,17 @@ impl Compiler {
             parser: Parser::init_parser(),
         }
     }
+    pub fn variable(&mut self) {
+        
+        let prev = self.parser.previous.clone();
+        self.named_variable(prev);
+    }
 
+    pub fn named_variable(&mut self, token: Token) {
+        let _name = String::from_utf8(token.value.clone()).unwrap_or_default();
+        let index = self.identifier_constant(token);
+        self.emit_bytes(OpCode::OpToBit(OpCode::OpGetGlobal), index);
+    }
     pub fn get_chunk(&self) -> Chunk {
         self.chunk.clone()
     }
@@ -228,12 +240,15 @@ impl Compiler {
     }
 
     pub fn var_declaration(&mut self){
+        
         let index = self.parse_variable("Expect Variable Name");
         if(self.match_tokentype(TokenType::TokenEqual)){
             self.expression();
         }else{
             self.emit_byte((OpCode::OpNil as u8));
         }
+        self.consume(TokenType::TokenSemicolon, ";");
+        self.define_variable(index);
 
     }
      fn synchronize(self: &mut Compiler) {

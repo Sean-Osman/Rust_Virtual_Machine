@@ -2,6 +2,7 @@ pub mod scanner;
 pub mod compiler; 
 use crate::compiler::Compiler;
 use scanner::{Scanner, TokenType};
+use std::collections::HashMap;
 
 
 //pub type Value = i16;
@@ -34,7 +35,8 @@ pub enum OpCode {
     OpLess,
     OpPrint,
     OpPop,
-    OpDefineGlobal
+    OpDefineGlobal,
+    OpGetGlobal
 }
 
 impl OpCode {
@@ -57,7 +59,8 @@ impl OpCode {
             OpCode::OpLess     => 14,
             OpCode::OpPrint    => 15,
             OpCode::OpPop      => 16,
-            OpCode::OpDefineGlobal => 17
+            OpCode::OpDefineGlobal => 17,
+            OpCode::OpGetGlobal => 18
         }
     }
 
@@ -81,6 +84,7 @@ impl OpCode {
             15 => OpCode::OpPrint,
             16 => OpCode::OpPop,
             17 => OpCode::OpDefineGlobal,
+            18 => OpCode::OpGetGlobal,
             _ => unreachable!(),
         }
     }
@@ -235,6 +239,11 @@ impl Chunk {
                     let offset = 1;
                     offset
                 }
+                OpCode::OpGetGlobal=>{
+                    println!("OP_OPGETGLOBAL");
+                    let offset = 1;
+                    offset
+                }
 
             }
         }
@@ -254,6 +263,7 @@ pub struct VirtualMachine {
     pub chunk: Chunk,
     pub ip: usize,     
     pub stack: Vec<Value>,
+    pub globals: HashMap<String, Value>,
 }
 
 impl VirtualMachine {
@@ -262,6 +272,8 @@ impl VirtualMachine {
             chunk: Chunk::init_chunk(),
             ip: 0,
             stack: Vec::new(),
+            globals: HashMap::new()
+            
         }
     }
 
@@ -557,8 +569,59 @@ impl VirtualMachine {
                     self.ip += 1;
             }
             OpCode::OpDefineGlobal =>{
+            
+                let name_index = self.chunk.code[self.ip + 1] as usize;
                 
+                let name_val = self.chunk.values[name_index].clone();
+
+                let var_name = match name_val {
+                    Value::ValString(s) => s,
+                    _ => {
+                        self.runtime_error("Global variable name must be a string.");
+                        return InterpretResult::InterpretRuntimeError;
+                    }
+                };
+                
+                let value = match self.stack.pop() {
+                    Some(v) => v,
+                    None => {
+                        self.runtime_error("Stack underflow while defining global.");
+                        return InterpretResult::InterpretRuntimeError;
+                    }
+                };
+
+                self.globals.insert(var_name, value);
+                self.ip += 2;  
             }
+            OpCode::OpGetGlobal =>{
+                     
+                let name_index = self.chunk.code[self.ip + 1] as usize;
+
+                let name_val = self.chunk.values[name_index].clone();
+
+                let var_name = match name_val {
+                    Value::ValString(s) => s,
+                    _ => {
+                        self.runtime_error("Global variable name must be a string.");
+                        return InterpretResult::InterpretRuntimeError;
+                    }
+                };
+
+                
+                let value = match self.globals.get(&var_name) {
+                    Some(v) => v.clone(),
+                    None => {
+                        self.runtime_error(&format!("Undefined global '{}'.", var_name));
+                        return InterpretResult::InterpretRuntimeError;
+                    }
+                };
+
+                
+                self.stack.push(value);
+
+               
+                self.ip += 2;
+                }
         }
           
           
