@@ -397,7 +397,7 @@ impl VirtualMachine {
             //   }
   
               OpCode::OpAdd => {
-                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       self.stack.push(Value::ValNumber(a.wrapping_add(b)));
                       self.ip += 1;
                   } else {
@@ -406,7 +406,7 @@ impl VirtualMachine {
               }
   
               OpCode::OpSubtract => {
-                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       self.stack.push(Value::ValNumber(a.wrapping_sub(b)));
                       self.ip += 1;
                   } else {
@@ -415,7 +415,7 @@ impl VirtualMachine {
               }
   
               OpCode::OpMultiply => {
-                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       self.stack.push(Value::ValNumber(a.wrapping_mul(b)));
                       self.ip += 1;
                   } else {
@@ -424,7 +424,7 @@ impl VirtualMachine {
               }
   
               OpCode::OpDivide => {
-                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b == 0 {
                           return InterpretResult::InterpretRuntimeError;
                       }
@@ -436,7 +436,7 @@ impl VirtualMachine {
               }
   
               OpCode::OpModulo => {
-                  if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
+                  if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b == 0 {
                           return InterpretResult::InterpretRuntimeError;
                       }
@@ -449,7 +449,7 @@ impl VirtualMachine {
 
               OpCode::OpNegate =>{
                 match self.stack.pop(){
-                    Some(Value::ValNumber(n)) => self.stack.push(Value::ValNumber((-n))),
+                    Some(Value::ValNumber(n)) => self.stack.push(Value::ValNumber(-n)),
                     Some(_) => {
                         self.runtime_error("Operand must be a number");
                         self.ip += 1;
@@ -477,7 +477,7 @@ impl VirtualMachine {
               OpCode::OpFalse=>{
                 match self.stack.pop(){
                     Some(v)=>{
-                        self.stack.push(Value::ValBool((false)));
+                        self.stack.push(Value::ValBool(false));
                         self.ip += 1;
                         // self.ip += 1;
                     }
@@ -489,7 +489,7 @@ impl VirtualMachine {
               OpCode::OpTrue=>{
                 match self.stack.pop(){
                     Some(v)=>{
-                        self.stack.push(Value::ValBool((true)));
+                        self.stack.push(Value::ValBool(true));
                         self.ip += 1;
                     }
                     None =>{
@@ -512,11 +512,11 @@ impl VirtualMachine {
              OpCode::OpEqual =>{
                 if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b == a {
-                          self.stack.push(Value::ValBool((true)));
+                          self.stack.push(Value::ValBool(true));
                           self.ip += 1;
                       }
                       if b != a {
-                        self.stack.push(Value::ValBool((false)));
+                        self.stack.push(Value::ValBool(false));
                         self.ip += 1;
                       }
                       
@@ -527,11 +527,11 @@ impl VirtualMachine {
              OpCode::OpGreater =>{
                 if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b > a {
-                          self.stack.push(Value::ValBool((true)));
+                          self.stack.push(Value::ValBool(true));
                           self.ip += 1;
                       }
                       if b < a {
-                        self.stack.push(Value::ValBool((false)));
+                        self.stack.push(Value::ValBool(false));
                         self.ip += 1;
                       }
                       
@@ -542,11 +542,11 @@ impl VirtualMachine {
              OpCode::OpLess=>{
                 if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
                       if b < a {
-                          self.stack.push(Value::ValBool((true)));
+                          self.stack.push(Value::ValBool(true));
                           self.ip += 1;
                       }
                       if b > a {
-                        self.stack.push(Value::ValBool((false)));
+                        self.stack.push(Value::ValBool(false));
                         self.ip += 1;
                       }
                       

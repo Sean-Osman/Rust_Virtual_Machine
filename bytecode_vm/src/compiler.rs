@@ -242,10 +242,10 @@ impl Compiler {
     pub fn var_declaration(&mut self){
         
         let index = self.parse_variable("Expect Variable Name");
-        if(self.match_tokentype(TokenType::TokenEqual)){
+        if self.match_tokentype(TokenType::TokenEqual) {
             self.expression();
         }else{
-            self.emit_byte((OpCode::OpNil as u8));
+            self.emit_byte(OpCode::OpNil as u8);
         }
         self.consume(TokenType::TokenSemicolon, ";");
         self.define_variable(index);
@@ -277,6 +277,7 @@ impl Compiler {
         self.print_statement();
         } else {
             self.expression_statement();
+           
     }
     
     }
@@ -431,6 +432,11 @@ impl Compiler {
             if precedence > current_rule.precedence {
                 break;
             }
+            // if there's no infix handler for this token, don't consume it
+            if current_rule.infix.is_none() {
+                return;
+            }
+            // consume the infix operator and call its handler
             self.advance();
             match current_rule.infix {
                 Some(func) => func(self),

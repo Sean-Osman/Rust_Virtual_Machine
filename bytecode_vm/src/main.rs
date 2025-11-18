@@ -2,7 +2,7 @@ use std::env;
 use std::io;
 use std::io::Write;
 use std::fs;
-use bytecode_vm::{VirtualMachine, InterpretResult}; // only what's needed
+use bytecode_vm::VirtualMachine; // only what's needed
 
 fn main() {
     // Initialize the Bytecode Stack-Based Virtual Machine
@@ -42,7 +42,6 @@ fn read_eval_print_loop(vm: &mut VirtualMachine) {
 
 fn run_file(vm: &mut VirtualMachine, infile: &str) {
     let lox_code = fs::read_to_string(infile).expect("Unable to read the file");
-
-    // Scanner path: scan and print tokens
-    vm.interpret_source(&lox_code);
+    // Scanner path: scan and print tokens (use the VM.compile token printer)
+    vm.compile(&lox_code);
 }
