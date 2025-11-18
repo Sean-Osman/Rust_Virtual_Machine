@@ -6,11 +6,13 @@ use scanner::{Scanner, TokenType};
 
 //pub type Value = i16;
 pub type Number = i16;
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+// removed copy due to ValString
 pub enum Value{
     ValBool(bool),
     ValNumber(Number),
-    ValNil
+    ValNil,
+    ValString(String)
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -29,7 +31,10 @@ pub enum OpCode {
     OpNot,
     OpEqual,
     OpGreater,
-    OpLess
+    OpLess,
+    OpPrint,
+    OpPop,
+    OpDefineGlobal
 }
 
 impl OpCode {
@@ -49,7 +54,10 @@ impl OpCode {
             OpCode::OpNot      => 11,
             OpCode::OpEqual    => 12,
             OpCode::OpGreater  => 13,
-            OpCode::OpLess      => 14
+            OpCode::OpLess     => 14,
+            OpCode::OpPrint    => 15,
+            OpCode::OpPop      => 16,
+            OpCode::OpDefineGlobal => 17
         }
     }
 
@@ -70,6 +78,9 @@ impl OpCode {
             12 => OpCode::OpEqual,
             13 => OpCode::OpGreater,
             14 => OpCode::OpLess,
+            15 => OpCode::OpPrint,
+            16 => OpCode::OpPop,
+            17 => OpCode::OpDefineGlobal,
             _ => unreachable!(),
         }
     }
@@ -134,7 +145,7 @@ impl Chunk {
                 OpCode::OpConstant => {
                     // one-byte operand: constant index
                     let idxbyte = self.code[offset + 1] as usize;
-                    let value = self.values[idxbyte];
+                    let value = &self.values[idxbyte];
                     println!("OP_CONSTANT         {} {:?}", idxbyte, value);
                     let offset = 2; // opcode + operand
                     offset
@@ -209,6 +220,21 @@ impl Chunk {
                     let offset = 1;
                     offset
                 }
+                OpCode::OpPrint=>{
+                    println!("OP_PRINT");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpPop=>{
+                    println!("OP_POP");
+                    let offset = 1;
+                    offset
+                }
+                OpCode::OpDefineGlobal=>{
+                    println!("OP_OPDEFINEGLOBAL");
+                    let offset = 1;
+                    offset
+                }
 
             }
         }
@@ -236,6 +262,21 @@ impl VirtualMachine {
             chunk: Chunk::init_chunk(),
             ip: 0,
             stack: Vec::new(),
+        }
+    }
+
+    pub fn print_value(&self, value: Value) {
+        match value {
+            Value::ValNil => println!("nil"),
+            Value::ValBool(b) => {
+                if b {
+                    println!("true");
+                } else {
+                    println!("false");
+                }
+            }
+            Value::ValNumber(n) => println!("{}", n),
+            Value::ValString(s) => print!("{}", s),
         }
     }
 
@@ -327,21 +368,21 @@ impl VirtualMachine {
                   if idx >= self.chunk.values.len() {
                       return InterpretResult::InterpretRuntimeError;
                   }
-                  let val = self.chunk.values[idx];
-                  self.stack.push(val);
+                  let val = &self.chunk.values[idx];
+                  self.stack.push(val.clone());
                   self.ip += 2;
               }
   
-              OpCode::OpNegate => {
-                  if let Some(Value::ValNumber(v)) = self.stack.pop() {
-                    //   let neg = (0u8).wrapping_sub(v);
-                    //   self.stack.push(neg);
-                    self.stack.push(Value::ValNumber(v * -1));
-                    self.ip += 1;
-                  } else {
-                      return InterpretResult::InterpretRuntimeError;
-                  }
-              }
+            //   OpCode::OpNegate => {
+            //       if let Some(Value::ValNumber(v)) = self.stack.pop() {
+            //         //   let neg = (0u8).wrapping_sub(v);
+            //         //   self.stack.push(neg);
+            //         self.stack.push(Value::ValNumber(v * -1));
+            //         self.ip += 1;
+            //       } else {
+            //           return InterpretResult::InterpretRuntimeError;
+            //       }
+            //   }
   
               OpCode::OpAdd => {
                   if let (Some(Value::ValNumber(b)), Some((Value::ValNumber(a)))) = (self.stack.pop(), self.stack.pop()) {
@@ -501,6 +542,23 @@ impl VirtualMachine {
                       return InterpretResult::InterpretRuntimeError;
                   }
              }
+             OpCode::OpPrint => {
+                  if let Some(value) = self.stack.pop() {
+                      self.print_value(value);
+                      self.ip += 1;
+                  } else {
+                      self.runtime_error("print underflow :( ");
+                      return InterpretResult::InterpretRuntimeError;
+                  }
+              }
+            OpCode::OpPop =>{
+                    // Just discard the top of the stack
+                    self.stack.pop();
+                    self.ip += 1;
+            }
+            OpCode::OpDefineGlobal =>{
+                
+            }
         }
           
           

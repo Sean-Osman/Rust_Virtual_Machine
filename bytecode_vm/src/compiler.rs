@@ -64,8 +64,10 @@ impl Parser {
         *self.parse_rules.get(&ttype).unwrap_or(&default)
     }
 
+    
+    
 
-
+    
     //pratt table mapping tokens to {prefix, infix, precedence}
     pub fn pratt_table() -> HashMap<TokenType, ParseRule> {
         let mut m: HashMap<TokenType, ParseRule> = HashMap::new();
@@ -189,6 +191,92 @@ impl Compiler {
         self.chunk.clone()
     }
 
+    fn match_tokentype(&mut self, token_type: TokenType) -> bool {
+        if !self.check(token_type) {
+            return false;
+        }
+        self.advance();
+        true
+    }
+    pub fn check(&self, token_type: TokenType) -> bool {
+        self.parser.current.token_type == token_type
+    }
+    fn parse_variable(&mut self, error_message: &str) -> u8 {
+         // read the identifier token
+    self.consume(TokenType::TokenIdentifier, error_message);
+
+    //store the token in a local variable first
+    let name_token = self.parser.previous.clone();
+
+    // then turn it into a constant index
+    self.identifier_constant(name_token)
+    }
+
+    pub fn identifier_constant(&mut self, name: Token) -> u8 {
+    let s = String::from_utf8(name.value).unwrap_or_default();
+    self.make_constant(Value::ValString(s))
+}
+
+    pub fn define_variable(&mut self, index: u8) {
+        self.emit_bytes(OpCode::OpToBit(OpCode::OpDefineGlobal), index);
+    }
+    pub fn declaration(&mut self){
+        self.statement();
+        if self.parser.panic_mode {
+            self.synchronize( );
+        }
+    }
+
+    pub fn var_declaration(&mut self){
+        let index = self.parse_variable("Expect Variable Name");
+        if(self.match_tokentype(TokenType::TokenEqual)){
+            self.expression();
+        }else{
+            self.emit_byte((OpCode::OpNil as u8));
+        }
+
+    }
+     fn synchronize(self: &mut Compiler) {
+            self.parser.panic_mode = false;
+            while self.parser.current.token_type != TokenType::TokenEof {
+                if self.parser.previous.token_type == TokenType::TokenSemicolon {
+                    return;
+                }
+
+                match self.parser.current.token_type {
+                    TokenType::TokenClass  => return,
+                    TokenType::TokenFun    => return,
+                    TokenType::TokenVar    => return,
+                    TokenType::TokenFor    => return,
+                    TokenType::TokenIf     => return,
+                    TokenType::TokenWhile  => return,
+                    TokenType::TokenPrint  => return,
+                    TokenType::TokenReturn => return,
+                    _ => break,
+                }
+                self.advance();
+            }
+        }
+    pub fn statement(&mut self){
+         if self.match_tokentype(TokenType::TokenPrint) {
+        self.print_statement();
+        } else {
+            self.expression_statement();
+    }
+    
+    }
+    fn expression_statement(&mut self) {
+        self.expression();
+        self.consume(TokenType::TokenSemicolon, "Expect ';' after expression.");
+        self.emit_byte(OpCode::OpToBit(OpCode::OpPop));
+    }
+
+    fn print_statement(&mut self) {
+        self.expression();
+        self.consume(TokenType::TokenSemicolon, "Expect ';' after value.");
+        self.emit_byte(OpCode::OpToBit(OpCode::OpPrint));
+    }
+
     pub fn literal(&mut self) {
     match self.parser.previous.token_type {
         TokenType::TokenNil => self.emit_byte(OpCode::OpNil as u8),
@@ -204,10 +292,13 @@ impl Compiler {
         // 2. advance
         self.advance();
         // 3. expression
-        self.expression();
-        // 4. consume EOF
-        self.consume(TokenType::TokenEof, "Expect end of expression.");
-        // 5.end_compiler
+        while !self.match_tokentype( TokenType::TokenEof) {
+            self.declaration();
+        }
+        // self.expression();
+        // // 4. consume EOF
+        // self.consume(TokenType::TokenEof, "Expect end of expression.");
+        // // 5.end_compiler
         self.end_compiler();
         // 6. return success
         !self.parser.had_error
@@ -392,5 +483,7 @@ impl Compiler {
         println!(": {}\n", message);
         self.parser.had_error = true;
     }
+
+    
 }
     
