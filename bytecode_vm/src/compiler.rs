@@ -1,6 +1,3 @@
-
-
-
 use std::collections::HashMap;
 use crate::scanner::{Scanner, Token, TokenType};
 use crate::{Chunk, OpCode, Value};
@@ -56,6 +53,10 @@ impl Parser {
             panic_mode: false,
             parse_rules: Parser::pratt_table(),
         }
+    }
+
+    pub fn check(&self, token_type: TokenType) -> bool {
+        self.current.token_type == token_type
     }
 
     //look up a rule by TokenType; fall back to (None, None, PrecNone).
@@ -184,6 +185,16 @@ impl Compiler {
         self.chunk.clone()
     }
 
+    pub fn variable(&mut self) {
+        self.named_variable(&self.parser.previous);
+    }
+
+    pub fn named_variable(&mut self, token: &Token) {
+        let _name = String::from_utf8(token.value.clone()).unwrap_or_default();
+        let index = self.identifier_constant(token);
+        self.emit_bytes(OpCode::OpToBit(OpCode::OpGetGlobal), index);
+    }
+
     pub fn literal(&mut self) {
     match self.parser.previous.token_type {
         TokenType::TokenNil => self.emit_byte(OpCode::OpNil as u8),
@@ -272,6 +283,31 @@ impl Compiler {
             TokenType::TokenMinus => self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract)),
             TokenType::TokenStar  => self.emit_byte(OpCode::OpToBit(OpCode::OpMultiply)),
             TokenType::TokenSlash => self.emit_byte(OpCode::OpToBit(OpCode::OpDivide)),
+            TokenType::TokenEqualEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenNotEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenGreater => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenGreaterEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenLess => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
+            TokenType::TokenLessEqual => {
+                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
+            },
             _ => {}
         }
     }

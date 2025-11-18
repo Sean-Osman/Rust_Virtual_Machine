@@ -26,6 +26,8 @@ pub enum OpCode {
     OpNil,
     OpTrue,
     OpFalse,
+    OpNot,
+    OpPrint,
 }
 
 impl OpCode {
@@ -41,7 +43,10 @@ impl OpCode {
             OpCode::OpModulo   => 7,
             OpCode::OpNil      => 8,
             OpCode::OpTrue     => 9,
-            OpCode::OpFalse   => 10,
+            OpCode::OpFalse    => 10,
+            OpCode::OpNot      => 11,
+            OpCode::OpPrint    => 12,
+
         }
     }
 
@@ -58,6 +63,8 @@ impl OpCode {
             8 => OpCode::OpNil,
             9 => OpCode::OpTrue,
             10 => OpCode::OpFalse,
+            11 => OpCode::OpNot,
+            12 => OpCode::OpPrint,
             _ => unreachable!(),
         }
     }
@@ -72,6 +79,10 @@ pub struct Chunk {
 }
 
 impl Chunk {
+        fn simple_instruction(&self, name: &str, offset: usize) -> usize {
+            println!("{}", name);
+            1
+        }
     pub fn init_chunk() -> Chunk {
         Chunk {
             code: Vec::new(),
@@ -162,6 +173,9 @@ impl Chunk {
                     let offset = 1;
                     offset
                 }
+                OpCode::OpPrint => {
+                    self.simple_instruction("OP_PRINT", offset)
+                }
             }
         }
     }
@@ -183,11 +197,26 @@ pub struct VirtualMachine {
 }
 
 impl VirtualMachine {
+
     pub fn init_machine() -> VirtualMachine {
         VirtualMachine {
             chunk: Chunk::init_chunk(),
             ip: 0,
             stack: Vec::new(),
+        }
+    }
+
+    pub fn print_value(&self, value: Value) {
+        match value {
+            Value::ValNil => println!("nil"),
+            Value::ValBool(b) => {
+                if b {
+                    println!("true");
+                } else {
+                    println!("false");
+                }
+            }
+            Value::ValNumber(n) => println!("{}", n),
         }
     }
 
@@ -254,8 +283,19 @@ impl VirtualMachine {
               OpCode::OpReturn => {
                   self.ip += 1;
                   return InterpretResult::InterpretSuccess;
-              }
-  
+              },
+              OpCode::OpNot => {
+                  match self.stack.pop() {
+                      Some(v) => {
+                          let result = !Self::is_falsey(&v);
+                          self.stack.push(Value::ValBool(result));
+                          self.ip += 1;
+                      }
+                      None => {
+                          return InterpretResult::InterpretRuntimeError;
+                      }
+                  }
+              },
               OpCode::OpConstant => {
                   if self.ip + 1 >= self.chunk.code.len() {
                       return InterpretResult::InterpretRuntimeError;
@@ -296,7 +336,17 @@ impl VirtualMachine {
                   } else {
                       return InterpretResult::InterpretRuntimeError;
                   }
-              }
+              },
+
+              OpCode::OpPrint => {
+                  if let Some(value) = self.stack.pop() {
+                      self.print_value(value);
+                      self.ip += 1;
+                  } else {
+                      self.runtime_error("print underflow :( ");
+                      return InterpretResult::InterpretRuntimeError;
+                  }
+              },
   
               OpCode::OpMultiply => {
                   if let (Some(b), Some(a)) = (self.stack.pop(), self.stack.pop()) {
