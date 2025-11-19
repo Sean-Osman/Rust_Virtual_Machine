@@ -233,9 +233,17 @@ impl Compiler {
         self.emit_bytes(OpCode::OpToBit(OpCode::OpDefineGlobal), index);
     }
     pub fn declaration(&mut self){
-        self.statement();
+         // If we see 'var', parse a variable declaration.
+        if self.match_tokentype(TokenType::TokenVar) {
+            self.var_declaration();
+        } else {
+            // Otherwise, it's a normal statement.
+            self.statement();
+        }
+
+        // Error recovery
         if self.parser.panic_mode {
-            self.synchronize( );
+            self.synchronize();
         }
     }
 
@@ -382,35 +390,38 @@ impl Compiler {
         self.parse_precedence(higher);
 
         match operator_type {
-            TokenType::TokenPlus  => self.emit_byte(OpCode::OpToBit(OpCode::OpAdd)),
+             TokenType::TokenPlus  => self.emit_byte(OpCode::OpToBit(OpCode::OpAdd)),
             TokenType::TokenMinus => self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract)),
             TokenType::TokenStar  => self.emit_byte(OpCode::OpToBit(OpCode::OpMultiply)),
             TokenType::TokenSlash => self.emit_byte(OpCode::OpToBit(OpCode::OpDivide)),
+
+            // equality
             TokenType::TokenEqualEqual => {
-                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-            },
+                self.emit_byte(OpCode::OpToBit(OpCode::OpEqual));
+            }
             TokenType::TokenNotEqual => {
+                // !(a == b)
+                self.emit_byte(OpCode::OpToBit(OpCode::OpEqual));
                 self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-            },
+            }
+
+            // comparisons
             TokenType::TokenGreater => {
-                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
-                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-            },
+                self.emit_byte(OpCode::OpToBit(OpCode::OpGreater));
+            }
             TokenType::TokenGreaterEqual => {
-                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                // !(a < b)
+                self.emit_byte(OpCode::OpToBit(OpCode::OpLess));
                 self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-            },
+            }
             TokenType::TokenLess => {
-                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
-                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-            },
+                self.emit_byte(OpCode::OpToBit(OpCode::OpLess));
+            }
             TokenType::TokenLessEqual => {
-                self.emit_byte(OpCode::OpToBit(OpCode::OpSubtract));
+                // !(a > b)
+                self.emit_byte(OpCode::OpToBit(OpCode::OpGreater));
                 self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-                self.emit_byte(OpCode::OpToBit(OpCode::OpNot));
-            },
+            }
 
             _ => {}
         }

@@ -525,34 +525,34 @@ impl VirtualMachine {
                   }
              } 
              OpCode::OpGreater =>{
-                if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
-                      if b > a {
-                          self.stack.push(Value::ValBool(true));
-                          self.ip += 1;
-                      }
-                      if b < a {
-                        self.stack.push(Value::ValBool(false));
-                        self.ip += 1;
-                      }
-                      
-                  } else {
-                      return InterpretResult::InterpretRuntimeError;
-                  }
+                     if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) =
+                        (self.stack.pop(), self.stack.pop())
+                    {
+                        if a > b {
+                            self.stack.push(Value::ValBool(true));
+                            self.ip += 1;
+                        } else {
+                            self.stack.push(Value::ValBool(false));
+                            self.ip += 1;
+                        }
+                    } else {
+                        return InterpretResult::InterpretRuntimeError;
+                    }
              }
              OpCode::OpLess=>{
-                if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) = (self.stack.pop(), self.stack.pop()) {
-                      if b < a {
-                          self.stack.push(Value::ValBool(true));
-                          self.ip += 1;
-                      }
-                      if b > a {
-                        self.stack.push(Value::ValBool(false));
-                        self.ip += 1;
-                      }
-                      
-                  } else {
-                      return InterpretResult::InterpretRuntimeError;
-                  }
+                    if let (Some(Value::ValNumber(b)), Some(Value::ValNumber(a))) =
+                        (self.stack.pop(), self.stack.pop())
+                    {
+                        if a < b {
+                            self.stack.push(Value::ValBool(true));
+                            self.ip += 1;
+                        } else {
+                            self.stack.push(Value::ValBool(false));
+                            self.ip += 1;
+                        }
+                    } else {
+                        return InterpretResult::InterpretRuntimeError;
+                    }
              }
              OpCode::OpPrint => {
                   if let Some(value) = self.stack.pop() {
