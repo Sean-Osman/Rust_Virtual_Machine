@@ -239,7 +239,7 @@ impl Scanner {
     }
 }
 
-// helper one-liners
+// helpers
 #[inline]
 fn is_digit(c: u8) -> bool {
     (c as char).is_ascii_digit()

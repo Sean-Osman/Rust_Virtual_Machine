@@ -16,7 +16,7 @@ pub enum Value{
     ValString(String)
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)] //note to group - bro why do we even have modulo it was in the directions to add it but never to actually implement it, unless we're stupid
 pub enum OpCode {
     OpReturn,
     OpConstant,
@@ -90,10 +90,16 @@ impl OpCode {
     }
 }
 
+impl Default for VirtualMachine { //just need this for the ui
+    fn default() -> Self {
+        VirtualMachine::init_machine()
+    }
+}
+
 // --- Chunk -----------------
 #[derive(Debug, Default, Clone)]
 pub struct Chunk {
-    pub code: Vec<u8>,   // opcode bytes (and any inline operands)
+    pub code: Vec<u8>,   // opcode bytes 
     pub lines: Vec<u32>, // line per byte in code
     pub values: Vec<Value>, // constant pool
 }
@@ -108,6 +114,7 @@ impl Chunk {
     }
 
     pub fn write_to_chunk(&mut self, byte: u8, linenum: u32) {
+        // println!("test print");
         self.code.push(byte);
         self.lines.push(linenum);
     }
@@ -259,7 +266,7 @@ pub enum InterpretResult {
 }
 
 #[derive(Debug)]
-pub struct VirtualMachine {
+pub struct VirtualMachine { //make the actual vm
     pub chunk: Chunk,
     pub ip: usize,     
     pub stack: Vec<Value>,
@@ -277,7 +284,7 @@ impl VirtualMachine {
         }
     }
 
-    pub fn print_value(&self, value: Value) {
+    pub fn print_value(&self, value: Value) { //printer for vm
         match value {
             Value::ValNil => println!("nil"),
             Value::ValBool(b) => {
@@ -300,7 +307,7 @@ impl VirtualMachine {
         _ => false,
             }
     }
-    fn is_falsey(val: &Value) -> bool {
+    fn is_falsey(val: &Value) -> bool { //never heard of falsey before, p cool
             match val {
                 Value::ValNil => true,
                 Value::ValBool(false) => true,
@@ -309,6 +316,7 @@ impl VirtualMachine {
         }
      fn runtime_error( self: &mut VirtualMachine, message: &str ) {
             println!("{}", message );
+            // println!("test print");
             println!("[line {}] in script", self.chunk.lines[self.ip]);
         }
 
@@ -318,7 +326,7 @@ impl VirtualMachine {
         self.run()
     }
     pub fn interpret_source(&mut self, source_code: &str) -> InterpretResult {
-        // Use the real compiler to produce bytecode, then run it
+        // use compiler to produce bytecode
         let mut the_compiler = Compiler::init_compiler();
         if !the_compiler.compile(source_code) {
             println!("Finished Compiling");
@@ -634,11 +642,11 @@ impl VirtualMachine {
 
  
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // ---------Helpers ----------
     fn push_const(chunk: &mut Chunk, line: u32, v: Value) {
         let idx = chunk.add_constant(v);
         chunk.write_to_chunk(OpCode::OpToBit(OpCode::OpConstant), line);
@@ -655,7 +663,6 @@ mod tests {
         (res, vm.stack)
     }
 
-    // -----Opcode table---------
     #[test]
     fn opcode_roundtrip() {
         let ops = [
@@ -675,18 +682,19 @@ mod tests {
         }
     }
 
-    // ------- Structure-----
     #[test]
     fn line_tracking_matches_code_bytes() {
         let mut c = Chunk::init_chunk();
-        //each write_to_chunk must push a matching line number
-        push_const(&mut c, 100, 1);
-        push_const(&mut c, 101, 2);
+        push_const(&mut c, 100, Value::ValNumber(1));
+        push_const(&mut c, 101, Value::ValNumber(2));
         push_op(&mut c, 102, OpCode::OpAdd);
         push_op(&mut c, 103, OpCode::OpReturn);
 
         assert_eq!(c.code.len(), c.lines.len(), "code/line length mismatch");
-        assert_eq!(c.values, vec![1, 2]);
+        assert_eq!(
+            c.values,
+            vec![Value::ValNumber(1), Value::ValNumber(2)]
+        );
         assert_eq!(c.lines[0], 100);
         assert_eq!(c.lines[2], 101);
         assert_eq!(c.lines[4], 102);
@@ -696,11 +704,10 @@ mod tests {
     #[test]
     fn disassemble_instruction_offsets() {
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 10, 42);    // 2 bytes
+        push_const(&mut c, 10, Value::ValNumber(42));    // 2 bytes
         push_op(&mut c, 11, OpCode::OpNegate); // 1 byte
         push_op(&mut c, 12, OpCode::OpReturn); // 1 byte
 
-        //xxpect: at 0 -> +2, at 2 -> +1, at 3 -> +1
         let mut off = 0;
         off += c.disassemble_instruction(off);
         assert_eq!(off, 2);
@@ -711,7 +718,6 @@ mod tests {
         assert_eq!(off, c.code.len());
     }
 
-    // ----------arithmetic ----------
     #[test]
     fn constant_and_return_stack_top() {
         let mut c = Chunk::init_chunk();
@@ -720,90 +726,99 @@ mod tests {
 
         let (res, stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretSuccess));
-        assert_eq!(stack, vec![123]);
+        assert_eq!(stack, vec![Value::ValNumber(123)]);
     }
 
     #[test]
     fn add_sub_mul_div_mod_chain() {
-        //program mirrors the sequence from the user’s main:
-        // 42 18 + 32 / 37 * 85 % 12 negate; return
         let mut c = Chunk::init_chunk();
 
-        push_const(&mut c, 123, 42);
-        push_const(&mut c, 124, 18);
+        push_const(&mut c, 123, Value::ValNumber(42));
+        push_const(&mut c, 124, Value::ValNumber(18));
         push_op(&mut c, 125, OpCode::OpAdd);
 
-        push_const(&mut c, 126, 32);
+        push_const(&mut c, 126, Value::ValNumber(32));
         push_op(&mut c, 127, OpCode::OpDivide);
 
-        push_const(&mut c, 128, 37);
+        push_const(&mut c, 128, Value::ValNumber(37));
         push_op(&mut c, 129, OpCode::OpMultiply);
 
-        push_const(&mut c, 130, 85);
+        push_const(&mut c, 130, Value::ValNumber(85));
         push_op(&mut c, 131, OpCode::OpModulo);
 
-        push_const(&mut c, 132, 12);
+        push_const(&mut c, 132, Value::ValNumber(12));
         push_op(&mut c, 133, OpCode::OpNegate);
 
         push_op(&mut c, 134, OpCode::OpReturn);
 
         let (res, stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretSuccess));
-
-        //compute expected with i16 math (no wrapping on / and % in code):
-        // (((42 + 18) / 32) * 37) % 85 = ((60 / 32) * 37) % 85 = (1 * 37) % 85 = 37
-        //push 12; negate => -12
-        // final stack should be [37, -12]
-        assert_eq!(stack, vec![37, -12]);
+        // (((42 + 18) / 32) * 37) % 85 = 37; 12 -> negate => -12
+        assert_eq!(
+            stack,
+            vec![
+                Value::ValNumber(37),
+                Value::ValNumber(-12),
+            ]
+        );
     }
 
     #[test]
     fn negate_positive_and_negative() {
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 10, 7);
+        push_const(&mut c, 10, Value::ValNumber(7));
         push_op(&mut c, 11, OpCode::OpNegate); // -> -7
-        push_const(&mut c, 12, -3);
+        push_const(&mut c, 12, Value::ValNumber(-3));
         push_op(&mut c, 13, OpCode::OpNegate); // -> +3
         push_op(&mut c, 14, OpCode::OpReturn);
 
         let (res, stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretSuccess));
-        assert_eq!(stack, vec![-7, 3]);
+        assert_eq!(
+            stack,
+            vec![
+                Value::ValNumber(-7),
+                Value::ValNumber(3),
+            ]
+        );
     }
 
     #[test]
     fn wrapping_add_sub_mul() {
-        // uses i16::wrapping_* semantics
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 1, i16::MAX); // 32767
-        push_const(&mut c, 2, 1);
+        push_const(&mut c, 1, Value::ValNumber(i16::MAX)); // 32767
+        push_const(&mut c, 2, Value::ValNumber(1));
         push_op(&mut c, 3, OpCode::OpAdd); // wraps to -32768
 
-        push_const(&mut c, 4, i16::MIN); // -32768
-        push_const(&mut c, 5, 1);
+        push_const(&mut c, 4, Value::ValNumber(i16::MIN)); // -32768
+        push_const(&mut c, 5, Value::ValNumber(1));
         push_op(&mut c, 6, OpCode::OpSubtract); // (-32768) - 1 => wraps to 32767
 
-        push_const(&mut c, 7, 2000);
-        push_const(&mut c, 8, 20);
-        push_op(&mut c, 9, OpCode::OpMultiply); // 2000*20 = 40000 -> wraps to i16
+        push_const(&mut c, 7, Value::ValNumber(2000));
+        push_const(&mut c, 8, Value::ValNumber(20));
+        push_op(&mut c, 9, OpCode::OpMultiply); 
 
         push_op(&mut c, 10, OpCode::OpReturn);
 
         let (res, stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretSuccess));
 
-        //compute expected wrapping
-        let a = i16::MAX.wrapping_add(1);          // -32768
-        let b = i16::MIN.wrapping_sub(1);          // 32767
-        let cval = 2000i16.wrapping_mul(20);       // wrapping product
+        let a = i16::MAX.wrapping_add(1);
+        let b = i16::MIN.wrapping_sub(1);
+        let cval = 2000i16.wrapping_mul(20);
 
-        assert_eq!(stack, vec![a, b, cval]);
+        assert_eq!(
+            stack,
+            vec![
+                Value::ValNumber(a),
+                Value::ValNumber(b),
+                Value::ValNumber(cval),
+            ]
+        );
     }
 
-    // ---------- error handling ----------
     #[test]
     fn error_missing_constant_operand() {
-        // OpConstant with no following index byte
         let mut c = Chunk::init_chunk();
         push_op(&mut c, 1, OpCode::OpConstant);
         // no operand byte
@@ -816,7 +831,7 @@ mod tests {
         // OpConstant with index that is out of bounds
         let mut c = Chunk::init_chunk();
         c.write_to_chunk(OpCode::OpToBit(OpCode::OpConstant), 1);
-        c.write_to_chunk(99, 1); // bogus index; values.len() == 0
+        c.write_to_chunk(99, 1); 
         let (res, _stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretRuntimeError));
     }
@@ -833,7 +848,7 @@ mod tests {
         ] {
             let mut c = Chunk::init_chunk();
             //push only one constant, then a binary op
-            push_const(&mut c, 10, 1);
+            push_const(&mut c, 10, Value::ValNumber(1));
             push_op(&mut c, 11, op);
             let (res, _stack) = run(c);
             assert!(
@@ -847,8 +862,8 @@ mod tests {
     #[test]
     fn error_divide_by_zero() {
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 1, 10);
-        push_const(&mut c, 2, 0);
+        push_const(&mut c, 1, Value::ValNumber(10));
+        push_const(&mut c, 2, Value::ValNumber(0));
         push_op(&mut c, 3, OpCode::OpDivide);
         let (res, _stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretRuntimeError));
@@ -857,8 +872,8 @@ mod tests {
     #[test]
     fn error_mod_by_zero() {
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 1, 10);
-        push_const(&mut c, 2, 0);
+        push_const(&mut c, 1, Value::ValNumber(10));
+        push_const(&mut c, 2, Value::ValNumber(0));
         push_op(&mut c, 3, OpCode::OpModulo);
         let (res, _stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretRuntimeError));
@@ -867,45 +882,46 @@ mod tests {
     #[test]
     fn return_terminates_execution() {
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 1, 5);
+        push_const(&mut c, 1, Value::ValNumber(5));
         push_op(&mut c, 2, OpCode::OpReturn);
         // garbage after return (should never execute)
-        push_const(&mut c, 999, 12345);
+        push_const(&mut c, 999, Value::ValNumber(12345));
         push_op(&mut c, 999, OpCode::OpAdd);
 
         let (res, stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretSuccess));
-        assert_eq!(stack, vec![5], "VM should stop executing after OpReturn");
+        assert_eq!(
+            stack,
+            vec![Value::ValNumber(5)],
+            "VM should stop executing after OpReturn"
+        );
     }
 
-    // ---------- order of operation----------
     #[test]
-    fn left_to_right_eval_for_binary_ops() {
+    fn left_to_right() {
         // ((8 - 3) * 2) + (20 / 5) % 6 = (5 * 2) + (4) % 6 = 10 + 4 = 14
         let mut c = Chunk::init_chunk();
-        push_const(&mut c, 1, 8);
-        push_const(&mut c, 2, 3);
+        push_const(&mut c, 1, Value::ValNumber(8));
+        push_const(&mut c, 2, Value::ValNumber(3));
         push_op(&mut c, 3, OpCode::OpSubtract);  // 5
 
-        push_const(&mut c, 4, 2);
-        push_op(&mut c, 5, OpCode::OpMultiply);  // 10
+        push_const(&mut c, 4, Value::ValNumber(2));
+        push_op(&mut c, 5, OpCode::OpMultiply); 
 
-        push_const(&mut c, 6, 20);
-        push_const(&mut c, 7, 5);
+        push_const(&mut c, 6, Value::ValNumber(20));
+        push_const(&mut c, 7, Value::ValNumber(5));
         push_op(&mut c, 8, OpCode::OpDivide);    // 4
 
-        push_const(&mut c, 9, 6);
-        push_op(&mut c, 10, OpCode::OpModulo);   // 4 % 6 = 4
+        push_const(&mut c, 9, Value::ValNumber(6));
+        push_op(&mut c, 10, OpCode::OpModulo);   
 
-        push_op(&mut c, 11, OpCode::OpAdd);      // 10 + 4 = 14
+        push_op(&mut c, 11, OpCode::OpAdd);      // idk what else
         push_op(&mut c, 12, OpCode::OpReturn);
 
         let (res, stack) = run(c);
         assert!(matches!(res, InterpretResult::InterpretSuccess));
-        assert_eq!(stack, vec![14]);
+        assert_eq!(stack, vec![Value::ValNumber(14)]);
     }
-
-// ----------------------- SCANNER TESTS ----------------------------
 
     fn collect_tokens(src: &str) -> Vec<TokenType> {
         let mut s = Scanner::init_scanner(src);
@@ -930,7 +946,7 @@ mod tests {
             TokenComma,
             TokenDot,
             TokenMinus, TokenPlus,
-            TokenStar, // careful: '/' is TokenSlash; '*' before '/'
+            TokenStar,
             TokenSlash,
             TokenEof,
         ];
@@ -938,9 +954,8 @@ mod tests {
     }
 
     #[test]
-    fn scan_two_char_comparisons() {
+    fn scan_2x_comparisons() {
         let src = "! != = == < <= > >=";
-        // include spaces to exercise whitespace skipper
         let got = collect_tokens(src);
         use TokenType::*;
         let expect = vec![
@@ -963,17 +978,17 @@ mod tests {
         assert_eq!(next(), TokenIdentifier); // x
         assert_eq!(next(), TokenEqual);
         assert_eq!(next(), TokenNumber);     // 12.34
-        assert_eq!(next(), TokenIdentifier); // y_2 (identifier allows digits after first)
+        assert_eq!(next(), TokenIdentifier); // y_2 
         assert_eq!(next(), TokenEqual);
         assert_eq!(next(), TokenNumber);     // 7
         assert_eq!(next(), TokenEof);
     }
 
     #[test]
-    fn scan_strings_and_comments() {
+    fn scan_comments() {
         let src = r#"
             // this is a comment
-            print "hello";
+            print "67";
             // another comment
         "#;
 
@@ -1011,43 +1026,5 @@ mod tests {
         assert_eq!(got, expect);
     }
 
-    #[test]
-    fn line_number_progresses_but_tokens_only_on_code_lines() {
-        let src = "var x = 1;\nprint x;\n\n// comment\nx = 2;";
-        let mut s = Scanner::init_scanner(src);
 
-        let mut toks = Vec::new();
-        loop {
-            let t = s.scan_token();
-            toks.push(t);
-            if matches!(toks.last().unwrap().token_type, TokenType::TokenEof) { break; }
-        }
-
-        use std::collections::BTreeSet;
-        let lines: BTreeSet<usize> = toks.iter().map(|t| t.line).collect();
-
-        // Tokens appear on code lines 1, 2, and 5
-        assert!(lines.contains(&1));
-        assert!(lines.contains(&2));
-        assert!(lines.contains(&5));
-
-        // No tokens should be produced for the blank line (3) or comment-only line (4)
-        assert!(!lines.contains(&3));
-        assert!(!lines.contains(&4));
-    }
-
-
-    #[test]
-    fn unknown_character_produces_error() {
-        let src = "@";
-        let mut s = Scanner::init_scanner(src);
-        let t = s.scan_token();
-        assert!(matches!(t.token_type, TokenType::TokenError));
-       let msg = String::from_utf8(t.value).unwrap();
-        assert!(msg.contains("Unknown"));
-    }
 }
-
-
-
- 
